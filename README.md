@@ -1,4 +1,4 @@
-# 🧬 GeneGuard-AI
+# GeneGuard-AI
 
 GeneGuard-AI is an AI-powered Genetic Disorder Prediction and Clinical Decision Support System designed to assist in analyzing genetic data, patient phenotypes, lifestyle factors, and family history to generate explainable disease risk assessments.
 
@@ -6,7 +6,7 @@ This repository currently contains the **backend foundation**, including databas
 
 ---
 
-# 🚀 Tech Stack
+# Tech Stack
 
 ## Backend
 - FastAPI
@@ -30,7 +30,7 @@ This repository currently contains the **backend foundation**, including databas
 
 ---
 
-# 📁 Project Structure
+# Project Structure
 
 ```
 GeneGuard-AI/
@@ -64,7 +64,7 @@ GeneGuard-AI/
 
 ---
 
-# ✅ Current Features
+# Current Features
 
 Completed backend foundation includes:
 
@@ -82,7 +82,7 @@ Completed backend foundation includes:
 
 ---
 
-# 🗄 Current Database Architecture
+# Current Database Architecture
 
 ```
 Patient
@@ -122,7 +122,7 @@ patient_id
 
 ---
 
-# 👨‍💻 Team Module Allocation
+# Team Module Allocation
 
 Each team member should work ONLY inside their assigned module.
 
@@ -139,7 +139,7 @@ Do NOT modify another module without discussion.
 
 ---
 
-# ⚙️ Prerequisites
+# Prerequisites
 
 Install
 
@@ -151,7 +151,7 @@ Docker Desktop must be running before starting the project.
 
 ---
 
-# 📥 Clone Repository
+# Clone Repository
 
 ```
 git clone https://github.com/manukrishna804/GeneGuard-AI.git
@@ -165,7 +165,7 @@ cd GeneGuard-AI
 
 ---
 
-# 🔧 Environment Setup
+# Environment Setup
 
 Inside
 
@@ -193,7 +193,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ---
 
-# ▶️ Run Project
+# Run Project
 
 From project root
 
@@ -205,7 +205,7 @@ First build may take several minutes because required AI packages are downloaded
 
 ---
 
-# 🌐 Application URLs
+# Application URLs
 
 Backend
 
@@ -233,7 +233,7 @@ localhost:5432
 
 ---
 
-# 🗃 pgAdmin Login
+# pgAdmin Login
 
 Email
 
@@ -251,7 +251,7 @@ admin
 
 ---
 
-# 📌 Existing APIs
+# Existing APIs
 
 ## Health Check
 
@@ -279,7 +279,7 @@ Swagger UI can be used to test APIs.
 
 ---
 
-# 🗄 Database Migration
+# Database Migration
 
 Whenever you change database models
 
@@ -303,7 +303,7 @@ Always use Alembic migrations.
 
 ---
 
-# 🌿 Git Workflow
+# Git Workflow
 
 Do NOT work directly on main.
 
@@ -329,7 +329,7 @@ Create a Pull Request.
 
 ---
 
-# 📂 Upload Folder
+# Upload Folder
 
 Patient reports and uploaded files will be stored in
 
@@ -341,7 +341,7 @@ Do NOT commit uploaded files.
 
 ---
 
-# 🚫 Files Not To Commit
+# Files Not To Commit
 
 Do NOT push
 
@@ -359,7 +359,7 @@ uploads/
 
 ---
 
-# 📝 Coding Guidelines
+# Coding Guidelines
 
 - Follow existing project structure.
 - Use SQLAlchemy ORM.
@@ -372,35 +372,35 @@ uploads/
 
 ---
 
-# 📌 Current Development Status
+# Current Development Status
 
-✅ Backend Foundation Complete
+Backend Foundation Complete
 
-✅ Docker Setup Complete
+Docker Setup Complete
 
-✅ Database Setup Complete
+Database Setup Complete
 
-✅ Patient Module Complete
+Patient Module Complete
 
-✅ Shared Database Architecture Complete
+Shared Database Architecture Complete
 
-🚧 WES Analysis Module
+WES Analysis Module
 
-🚧 Phenotype Analysis Module
+Phenotype Analysis Module
 
-🚧 Lifestyle Module
+Lifestyle Module
 
-🚧 Family History Module
+Family History Module
 
-🚧 AI Report Generation
+AI Report Generation
 
-🚧 Authentication
+Authentication
 
-🚧 AI Pipeline
+AI Pipeline
 
 ---
 
-# 🎯 Project Goal
+# Project Goal
 
 GeneGuard-AI aims to provide an intelligent platform for genetic disorder analysis by integrating
 
