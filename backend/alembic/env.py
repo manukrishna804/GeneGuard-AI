@@ -1,6 +1,16 @@
 from logging.config import fileConfig
 from app.database.base import Base
-from app.models import Patient
+
+# Import ALL models so Alembic autogenerate detects every mapped table
+from app.models import (  # noqa: F401
+    Patient,
+    WESReport,
+    Phenotype,
+    Lifestyle,
+    FamilyHistory,
+    AIReport,
+    Medication,
+)
 
 
 from sqlalchemy import engine_from_config
@@ -12,10 +22,14 @@ from app.core.config import settings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option(
-    "sqlalchemy.url",
-    settings.DATABASE_URL_LOCAL
-)
+
+# Use DATABASE_URL (Docker service name) when running inside the container,
+# DATABASE_URL_LOCAL (localhost) when running outside.
+import os as _os
+_in_docker = _os.path.exists("/.dockerenv")
+_db_url = settings.DATABASE_URL if _in_docker else settings.DATABASE_URL_LOCAL
+
+config.set_main_option("sqlalchemy.url", _db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

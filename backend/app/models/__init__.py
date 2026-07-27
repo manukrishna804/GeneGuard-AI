@@ -4,3 +4,4 @@ from .phenotype import Phenotype
 from .lifestyle import Lifestyle
 from .family_history import FamilyHistory
 from .report import AIReport
+from .medication import Medication
