@@ -131,123 +131,120 @@ def detect_inheritance_pattern(
     members: List[PedigreeNode],
 ) -> Dict[str, object]:
     """
-    Rule-based heuristic to infer the most likely inheritance pattern given a
-    pedigree (list of PedigreeNode).
+    Rule-based inheritance pattern detector, using disqualifying evidence
+    rather than loose pattern-matching.
 
-    Rules applied (in priority order):
-      1. If affected individuals appear in every generation → likely Autosomal Dominant
-      2. If only siblings are affected (parents unaffected) → likely Autosomal Recessive
-      3. If only male members are affected → consider X-linked Recessive
-      4. If pattern is unclear → Unknown
-
-    Returns:
-        {
-            "pattern":    str  (InheritanceMode value),
-            "confidence": str  ("high", "moderate", "low"),
-            "rationale":  str  (human-readable explanation),
-            "affected_count":   int,
-            "unaffected_count": int,
-        }
+    Approach: for each affected member whose parent's health status is known,
+    classify that parent-child relationship as evidence FOR or AGAINST each
+    candidate pattern. A pattern is disqualified if there is direct evidence
+    against it (e.g. an affected father passing to an affected son rules out
+    X-linked recessive; an affected child of two unaffected parents rules out
+    clean autosomal dominant). Remaining candidates are then scored by amount
+    of supporting evidence, and confidence is downgraded when evidence is
+    sparse or tied between competing patterns.
     """
     if not members:
-        return {
-            "pattern": InheritanceMode.UNKNOWN.value,
-            "confidence": "low",
-            "rationale": "No pedigree data provided.",
-            "affected_count": 0,
-            "unaffected_count": 0,
-        }
-
-    affected   = [m for m in members if m.health_status == "Affected"]
-    unaffected = [m for m in members if m.health_status == "Unaffected"]
-    unknown    = [m for m in members if m.health_status not in ("Affected", "Unaffected")]
-
-    n_affected   = len(affected)
-    n_unaffected = len(unaffected)
-
-    if n_affected == 0:
-        return {
-            "pattern": InheritanceMode.UNKNOWN.value,
-            "confidence": "low",
-            "rationale": "No affected members found in pedigree.",
-            "affected_count": 0,
-            "unaffected_count": n_unaffected,
-        }
-
-    # Build parent→children map
-    parent_map: Dict[Optional[int], List[PedigreeNode]] = {}
-    for m in members:
-        parent_map.setdefault(m.parent_id, []).append(m)
-
-    # Collect unique generations by tracing depth from roots
-    def depth(node: PedigreeNode, id_map: Dict[int, PedigreeNode], cache: Dict[int, int]) -> int:
-        if node.member_id in cache:
-            return cache[node.member_id]
-        if node.parent_id is None or node.parent_id not in id_map:
-            cache[node.member_id] = 0
-            return 0
-        d = 1 + depth(id_map[node.parent_id], id_map, cache)
-        cache[node.member_id] = d
-        return d
+        return _pattern_result(InheritanceMode.UNKNOWN.value, "low",
+                                "No pedigree data provided.", 0, 0)
 
     id_map = {m.member_id: m for m in members}
-    depth_cache: Dict[int, int] = {}
-    affected_generations = {depth(m, id_map, depth_cache) for m in affected}
-    total_generations    = {depth(m, id_map, depth_cache) for m in members}
+    affected = [m for m in members if m.health_status == "Affected"]
+    unaffected = [m for m in members if m.health_status == "Unaffected"]
+    n_affected, n_unaffected = len(affected), len(unaffected)
 
-    # Rule 1 — Autosomal Dominant: affected in multiple generations
-    if len(affected_generations) >= 2 and len(affected_generations) >= len(total_generations) / 2:
-        return {
-            "pattern": InheritanceMode.AUTOSOMAL_DOMINANT.value,
-            "confidence": "high" if len(affected_generations) >= 3 else "moderate",
-            "rationale": (
-                f"Affected individuals span {len(affected_generations)} generation(s), "
-                "suggesting vertical transmission consistent with autosomal dominant inheritance."
-            ),
-            "affected_count": n_affected,
-            "unaffected_count": n_unaffected,
-        }
+    if n_affected == 0:
+        return _pattern_result(InheritanceMode.UNKNOWN.value, "low",
+                                "No affected members found in pedigree.",
+                                0, n_unaffected)
 
-    # Rule 2 — X-linked Recessive: only males affected
-    affected_males   = [m for m in affected if m.sex == "M"]
+    dominant_supporting = dominant_against = 0
+    recessive_supporting = 0
+    xlinked_supporting = 0
+    male_to_male_transmission = False  # disqualifies X-linked recessive
+
+    for m in members:
+        if m.parent_id is None or m.parent_id not in id_map:
+            continue
+        parent = id_map[m.parent_id]
+        if parent.health_status not in ("Affected", "Unaffected"):
+            continue  # parent status unknown -> not informative
+
+        if m.health_status == "Affected":
+            if parent.health_status == "Affected":
+                dominant_supporting += 1
+                if parent.sex == "M" and m.sex == "M":
+                    male_to_male_transmission = True
+            else:  # parent unaffected, child affected -> generation skip
+                dominant_against += 1
+                recessive_supporting += 1
+                if m.sex == "M" and parent.sex == "F":
+                    xlinked_supporting += 1
+
+    dominant_disqualified = dominant_against > 0
+    xlinked_disqualified = male_to_male_transmission
+
+    affected_males = [m for m in affected if m.sex == "M"]
     affected_females = [m for m in affected if m.sex == "F"]
+    only_males_affected = bool(affected_males) and not affected_females
 
-    if affected_males and not affected_females:
-        return {
-            "pattern": InheritanceMode.X_LINKED_RECESSIVE.value,
-            "confidence": "moderate",
-            "rationale": (
-                f"All {len(affected_males)} affected member(s) are male with no affected females, "
-                "consistent with X-linked recessive inheritance."
-            ),
-            "affected_count": n_affected,
-            "unaffected_count": n_unaffected,
-        }
+    candidates = []
 
-    # Rule 3 — Autosomal Recessive: affected only among siblings, parents unaffected
-    root_affected = [m for m in affected if m.parent_id is None]
-    if not root_affected and n_affected >= 1:
-        return {
-            "pattern": InheritanceMode.AUTOSOMAL_RECESSIVE.value,
-            "confidence": "moderate",
-            "rationale": (
-                f"{n_affected} affected member(s) found among non-root nodes with unaffected "
-                "ancestors, consistent with autosomal recessive inheritance."
-            ),
-            "affected_count": n_affected,
-            "unaffected_count": n_unaffected,
-        }
+    if not dominant_disqualified and dominant_supporting > 0:
+        conf = "high" if dominant_supporting >= 2 else "moderate"
+        candidates.append((
+            InheritanceMode.AUTOSOMAL_DOMINANT.value, conf, dominant_supporting,
+            f"{dominant_supporting} affected member(s) have an affected parent "
+            "with no observed generation-skipping, consistent with autosomal "
+            "dominant inheritance."
+        ))
 
-    # Fallback
+    if not xlinked_disqualified and only_males_affected and xlinked_supporting > 0:
+        conf = "high" if xlinked_supporting >= 2 else "moderate"
+        candidates.append((
+            InheritanceMode.X_LINKED_RECESSIVE.value, conf, xlinked_supporting,
+            "Only male members are affected, transmitted through unaffected "
+            f"(likely carrier) mothers, with no father-to-son transmission "
+            f"observed ({xlinked_supporting} informative case(s)) -- consistent "
+            "with X-linked recessive inheritance."
+        ))
+
+    if recessive_supporting > 0:
+        conf = "high" if recessive_supporting >= 2 else "moderate"
+        candidates.append((
+            InheritanceMode.AUTOSOMAL_RECESSIVE.value, conf, recessive_supporting,
+            f"{recessive_supporting} affected member(s) born to two unaffected "
+            "(carrier) parents, consistent with autosomal recessive inheritance."
+        ))
+
+    if not candidates:
+        return _pattern_result(
+            InheritanceMode.UNKNOWN.value, "low",
+            "Insufficient or ambiguous pedigree data (parents' status unknown "
+            "or too few informative relationships) to determine inheritance "
+            "pattern confidently. Consider adding more family members or "
+            "health status information.",
+            n_affected, n_unaffected,
+        )
+
+    candidates.sort(key=lambda c: c[2], reverse=True)
+    pattern, confidence, top_score, rationale = candidates[0]
+
+    if len(candidates) > 1 and candidates[1][2] == top_score:
+        confidence = "low"
+        rationale += (" (Note: evidence is ambiguous between multiple "
+                       "patterns; treat with caution.)")
+
+    return _pattern_result(pattern, confidence, rationale, n_affected, n_unaffected)
+
+
+def _pattern_result(pattern: str, confidence: str, rationale: str,
+                     affected_count: int, unaffected_count: int) -> Dict[str, object]:
     return {
-        "pattern": InheritanceMode.UNKNOWN.value,
-        "confidence": "low",
-        "rationale": (
-            "Insufficient or ambiguous pedigree data to determine inheritance pattern. "
-            "Consider adding more family members or health status information."
-        ),
-        "affected_count": n_affected,
-        "unaffected_count": n_unaffected,
+        "pattern": pattern,
+        "confidence": confidence,
+        "rationale": rationale,
+        "affected_count": affected_count,
+        "unaffected_count": unaffected_count,
     }
 
 
