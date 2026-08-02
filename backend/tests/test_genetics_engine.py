@@ -8,6 +8,7 @@ Covers:
     (single affected male mistaken for X-linked; a true X-linked pedigree
     mistaken for autosomal dominant) that motivated the rule rewrite.
 """
+# pyrefly: ignore [missing-import]
 import pytest
 
 from app.services.genetics_engine import (

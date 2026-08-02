@@ -9,6 +9,7 @@ punnett_square() cases already covered there, to confirm this endpoint is a
 correct, thin wrapper around the shared engine and not a second, drifting
 implementation.
 """
+# pyrefly: ignore [missing-import]
 import pytest
 
 from app.api.v1.endpoints.consanguinity import (
