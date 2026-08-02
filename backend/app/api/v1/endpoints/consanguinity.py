@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
