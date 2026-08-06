@@ -1,6 +1,11 @@
 from logging.config import fileConfig
-from app.database.base import Base
-from app.models import Patient
+from app.core.database.base import Base
+from app.modules.patient.model import Patient
+from app.modules.wes_analysis.model import WESReport
+from app.modules.facial_phenotype.model import Phenotype
+from app.modules.lifestyle.model import Lifestyle
+from app.modules.family_pedigree.model import FamilyHistory
+from app.modules.report.model import AIReport
 
 
 from sqlalchemy import engine_from_config
