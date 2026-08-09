@@ -62,18 +62,18 @@ REQUEST_TIMEOUT = 15  # seconds — applies to all external API calls
 # Step 1 — PDF text extraction
 # ---------------------------------------------------------------------------
 
-def extract_text_from_pdf(file_bytes: bytes) -> str:
+def extract_text_from_pdf(file_bytes: bytes) -> tuple:
     """
-    Extract raw text from a PDF using pdfplumber.
-
-    Supports text-based PDFs (the majority of WES lab reports).
-    OCR support for image-based PDFs can be added in a later sprint.
+    Extract raw text from a PDF using a multi-layer strategy:
+      1. pdfplumber text extraction
+      2. PyMuPDF (fitz) text extraction fallback
+      3. OCR image rendering fallback for scanned/image PDFs
 
     Args:
         file_bytes: Raw PDF file content.
 
     Returns:
-        Concatenated plain text from all pages.
+        (full_text: str, is_ocr: bool)
 
     Raises:
         ValueError: If the file is not a valid PDF or no text can be extracted.
@@ -86,7 +86,9 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         raise ValueError("Uploaded file does not appear to be a valid PDF.")
 
     text_parts: List[str] = []
+    is_ocr = False
 
+    # Strategy 1: pdfplumber text extraction
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
             if not pdf.pages:
@@ -97,22 +99,57 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 if page_text:
                     text_parts.append(page_text)
                 else:
-                    logger.debug("Page %d: no text extracted (may be image-based).", page_number)
+                    logger.debug("Page %d: no text extracted via pdfplumber.", page_number)
 
     except pdfplumber.pdfminer.pdfpage.PDFTextExtractionNotAllowed:
         raise ValueError("PDF has text extraction disabled (encrypted/protected).")
     except Exception as exc:
-        raise ValueError(f"Failed to read PDF: {exc}") from exc
+        logger.debug("pdfplumber extraction failed: %s", exc)
 
     full_text = "\n".join(text_parts).strip()
+
+    # Strategy 2: PyMuPDF (fitz) text fallback if pdfplumber extracted < 50 chars
+    if len(full_text) < 50:
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            fitz_parts = [page.get_text() for page in doc if page.get_text()]
+            fitz_text = "\n".join(fitz_parts).strip()
+            if len(fitz_text) > len(full_text):
+                full_text = fitz_text
+        except Exception as exc:
+            logger.debug("PyMuPDF text extraction failed: %s", exc)
+
+    # Strategy 3: OCR fallback if text is still empty/minimal (<50 chars)
+    if len(full_text) < 50:
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            ocr_parts = []
+            for page in doc:
+                pix = page.get_pixmap(dpi=150)
+                try:
+                    import pytesseract
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(pix.tobytes("png")))
+                    txt = pytesseract.image_to_string(img)
+                    if txt:
+                        ocr_parts.append(txt)
+                except ImportError:
+                    pass
+            if ocr_parts:
+                full_text = "\n".join(ocr_parts).strip()
+                is_ocr = True
+        except Exception as exc:
+            logger.debug("OCR extraction failed: %s", exc)
 
     if not full_text:
         raise ValueError(
             "No text could be extracted from this PDF. "
-            "It may be a scanned/image-based report. OCR support is planned for a future sprint."
+            "It may be a scanned/image-based or protected report."
         )
 
-    return full_text
+    return full_text, is_ocr
 
 
 # ---------------------------------------------------------------------------
@@ -217,10 +254,120 @@ _ZYGOSITY_MAP = {
     "hemizygous": "HEMIZYGOUS",
 }
 
+# Normalise raw classification strings to short standard codes
+_CLASSIFICATION_MAP = {
+    "pathogenic": "PV",
+    "pathogenic variant": "PV",
+    "pv": "PV",
+    "likely pathogenic": "LP",
+    "lp": "LP",
+    "variant of uncertain significance": "VUS",
+    "vus": "VUS",
+    "benign": "B",
+    "b": "B",
+    "likely benign": "LB",
+    "lb": "LB"
+}
+
 
 # ---------------------------------------------------------------------------
 # Gene / ClinVar helper patterns (module-level, compiled once)
 # ---------------------------------------------------------------------------
+
+def _normalise_zygosity(raw: Optional[str]) -> Optional[str]:
+    if raw is None:
+        return None
+    return _ZYGOSITY_MAP.get(raw.lower().strip(), raw.upper().strip())
+
+
+def extract_structured_hgvs(text: str) -> List[Dict[str, Optional[str]]]:
+    """
+    Extract structured HGVS variants directly from report text expressions like:
+      - GNAO1, NM_020988.3:c.118G>T (p.Gly40Trp)
+      - NM_020988.3(GNAO1):c.118G>T (p.Gly40Trp)
+      - GNAO1 c.118G>T p.Gly40Trp Het PV
+    """
+    variants = []
+    
+    # Compound pattern 1: Gene, Transcript:cDNA (protein)
+    p1 = re.compile(
+        r"\b(?P<gene>[A-Z][A-Z0-9\-]{1,9})[,\s:]+"
+        r"(?P<transcript>(?:NM|NR|NP|ENST)_\d+(?:\.\d+)?):?"
+        r"(?P<cdna>c\.[A-Za-z0-9_>\+\-\*]+)"
+        r"(?:\s*\((?P<protein>p\.[A-Za-z0-9_>\+\-\*]+)\))?",
+        re.IGNORECASE
+    )
+
+    # Compound pattern 2: Transcript(Gene):cDNA (protein)
+    p2 = re.compile(
+        r"\b(?P<transcript>(?:NM|NR|NP|ENST)_\d+(?:\.\d+)?)\("
+        r"(?P<gene>[A-Z][A-Z0-9\-]{1,9})\):?"
+        r"(?P<cdna>c\.[A-Za-z0-9_>\+\-\*]+)"
+        r"(?:\s*\((?P<protein>p\.[A-Za-z0-9_>\+\-\*]+)\))?",
+        re.IGNORECASE
+    )
+
+    # Compound pattern 3: Gene cDNA protein (e.g. table lines: GNAO1 c.118G>T p.Gly40Trp Het PV)
+    p3 = re.compile(
+        r"\b(?P<gene>[A-Z][A-Z0-9\-]{1,9})\s+"
+        r"(?P<cdna>c\.[A-Za-z0-9_>\+\-\*]+)"
+        r"(?:\s+(?P<protein>p\.[A-Za-z0-9_>\+\-\*]+))?",
+        re.IGNORECASE
+    )
+
+    matches = []
+    for p in [p1, p2, p3]:
+        for m in p.finditer(text):
+            d = m.groupdict()
+            gene = d.get("gene")
+            cdna = d.get("cdna")
+            if gene and gene.upper() in _NON_GENE_WORDS:
+                continue
+            if cdna and cdna.startswith("c."):
+                matches.append((m.start(), d))
+
+    if not matches:
+        return []
+
+    cv_match = _CLINVAR_VAR_ID_RE.search(text)
+    clinvar_var_id = cv_match.group(1) if cv_match else None
+
+    for start_pos, d in matches:
+        window = text[max(0, start_pos - 100):min(len(text), start_pos + 300)]
+        
+        zyg_m = re.search(r"\b(Heterozygous|Homozygous|Hemizygous|HET|HOM)\b", window, re.IGNORECASE)
+        class_m = re.search(r"\b(Pathogenic\s+Variant|Pathogenic|Likely\s+Pathogenic|VUS|Benign|Likely\s+Benign|PV|LP)\b", window, re.IGNORECASE)
+        tr_m = re.search(r"\b((?:NM|NR|NP|ENST)_\d+(?:\.\d+)?)\b", text[max(0, start_pos - 300):min(len(text), start_pos + 300)], re.IGNORECASE)
+
+        raw_zyg = zyg_m.group(1) if zyg_m else None
+        norm_zyg = _normalise_zygosity(raw_zyg) if raw_zyg else None
+
+        raw_class = class_m.group(1) if class_m else None
+        norm_class = _CLASSIFICATION_MAP.get(raw_class.lower(), raw_class) if raw_class else None
+
+        v = {
+            "gene": d.get("gene"),
+            "transcript": d.get("transcript") or (tr_m.group(1) if tr_m else None),
+            "cdna": _clean_cdna(d.get("cdna")),
+            "protein": _clean_protein(d.get("protein")),
+            "rsid": None,
+            "zygosity": norm_zyg,
+            "classification": norm_class,
+            "variant_type": None,
+            "clinvar_variation_id": clinvar_var_id,
+        }
+        variants.append(v)
+
+    # Deduplicate
+    seen = set()
+    unique = []
+    for v in variants:
+        key = (v.get("gene"), v.get("transcript"), v.get("cdna"))
+        if key not in seen:
+            seen.add(key)
+            unique.append(v)
+    return unique
+
 
 # Matches gene symbol in parentheses AFTER a transcript accession:
 #   e.g. "Reference sequence: NM_020988.3(GNAO1)"
@@ -1180,8 +1327,11 @@ def analyze_wes_report(file_bytes: bytes) -> WESAnalysisResponse:
     Orchestrate the full WES analysis pipeline for a PDF upload.
 
     Steps:
-        1. Extract text from PDF.
-        2. Extract variant fields (prefer table, fallback to text).
+        1. Extract text from PDF (with PyMuPDF & OCR fallbacks).
+        2. Extract variant fields using prioritized extraction layers:
+           - Priority 1: Table extraction (variant_table)
+           - Priority 2: Structured HGVS parsing (structured_hgvs / ocr_text)
+           - Priority 3: Proximity anchor fallback (fallback_text / ocr_text)
         3. Validate each variant.
         4. Query Ensembl and ClinVar.
         5. Assemble structured response.
@@ -1189,9 +1339,9 @@ def analyze_wes_report(file_bytes: bytes) -> WESAnalysisResponse:
     Returns:
         WESAnalysisResponse with status, extraction info, and VariantResult list.
     """
-    # --- PDF extraction ---
+    # --- PDF text & OCR extraction ---
     try:
-        text = extract_text_from_pdf(file_bytes)
+        text, is_ocr = extract_text_from_pdf(file_bytes)
     except ValueError as exc:
         logger.warning("PDF extraction failed: %s", exc)
         return WESAnalysisResponse(
@@ -1200,12 +1350,24 @@ def analyze_wes_report(file_bytes: bytes) -> WESAnalysisResponse:
             message=str(exc),
         )
 
-    # --- Table‑first variant extraction ---
+    # --- Prioritized extraction layers ---
+
+    # Priority 1: Table-based extraction (from PDF table structures)
     raw_variants = extract_variants_from_table(file_bytes)
-    extraction_source = "variant_table"
-    if not raw_variants:
-        raw_variants = extract_variants(text)
-        extraction_source = "fallback_text"
+    if raw_variants:
+        extraction_source = "variant_table"
+        confidence = "high"
+    else:
+        # Priority 2: Structured HGVS compound regex extraction directly from report text
+        raw_variants = extract_structured_hgvs(text)
+        if raw_variants:
+            extraction_source = "ocr_text" if is_ocr else "structured_hgvs"
+            confidence = "high"
+        else:
+            # Priority 3: Proximity anchor fallback text extraction
+            raw_variants = extract_variants(text)
+            extraction_source = "ocr_text" if is_ocr else "fallback_text"
+            confidence = "medium" if raw_variants else "low"
 
     if not raw_variants:
         return WESAnalysisResponse(
@@ -1215,8 +1377,6 @@ def analyze_wes_report(file_bytes: bytes) -> WESAnalysisResponse:
             message="Text was extracted from the PDF but no variant patterns were detected. "
                     "The report may use a non‑standard format.",
         )
-
-    confidence = "high" if extraction_source == "variant_table" else "low"
 
     results: List[VariantResult] = []
     for raw in raw_variants:
