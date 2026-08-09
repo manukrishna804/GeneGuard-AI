@@ -38,6 +38,8 @@ from app.modules.wes_analysis.schema import (
     OMIMInfo,
     GnomADInfo,
     HPOInfo,
+    PubMedArticle,
+    OMIMPhenotype,
 )
 
 logger = logging.getLogger(__name__)
@@ -828,8 +830,65 @@ def query_clinvar(
 
 
 # ---------------------------------------------------------------------------
-# Step 6 — Assemble per-variant evidence
+# Step 6 — PubMed helper & Assemble per-variant evidence
 # ---------------------------------------------------------------------------
+
+def fetch_pubmed_details(pmid_list: List[str]) -> List[PubMedArticle]:
+    """
+    Fetch article metadata (title, journal, year, authors) for a list of PubMed IDs
+    via NCBI E-utilities esummary.
+    """
+    if not pmid_list:
+        return []
+
+    valid_pmids = [str(p).strip() for p in pmid_list if str(p).strip().isdigit()][:10]
+    if not valid_pmids:
+        return []
+
+    url = f"{NCBI_BASE_URL}/esummary.fcgi"
+    params: Dict[str, str] = {
+        "db": "pubmed",
+        "id": ",".join(valid_pmids),
+        "retmode": "json",
+    }
+    if NCBI_API_KEY:
+        params["api_key"] = NCBI_API_KEY
+
+    articles: List[PubMedArticle] = []
+    try:
+        resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+        if resp.status_code == 200:
+            data = resp.json()
+            result_set = data.get("result", {})
+            result_set.pop("uids", None)
+            for pmid, item in result_set.items():
+                if not isinstance(item, dict):
+                    continue
+                title = item.get("title", "").rstrip(".")
+                journal = item.get("source")
+                pubdate = item.get("pubdate", "")
+                year = pubdate.split()[0] if pubdate else None
+
+                authors_list = [a.get("name") for a in item.get("authors", []) if isinstance(a, dict) and a.get("name")]
+                authors_str = (
+                    ", ".join(authors_list[:3]) + (" et al." if len(authors_list) > 3 else "")
+                    if authors_list else None
+                )
+
+                articles.append(
+                    PubMedArticle(
+                        pmid=pmid,
+                        title=title or None,
+                        journal=journal or None,
+                        year=year or None,
+                        authors=authors_str,
+                    )
+                )
+    except Exception as exc:
+        logger.debug("Failed to fetch PubMed article details: %s", exc)
+
+    return articles
+
 
 def build_evidence(
     raw_variant: Dict[str, Any],
@@ -856,6 +915,7 @@ def build_evidence(
         consequence=None,
     )
     
+    recoder = None
     vep_data = None
     if ensembl_result.status == "success" and ensembl_result.data:
         recoder = ensembl_result.data.get("recoder")
@@ -879,6 +939,68 @@ def build_evidence(
             if not ensembl_info.variant_id:
                 ensembl_info.variant_id = vep_data.get("id")
 
+            # Enrich Ensembl positional and transcript details
+            ensembl_info.chromosome = str(vep_data.get("seq_region_name")) if vep_data.get("seq_region_name") else None
+            if vep_data.get("start") is not None:
+                try:
+                    ensembl_info.position = int(vep_data.get("start"))
+                except (ValueError, TypeError):
+                    pass
+
+            allele_str = vep_data.get("allele_string", "")
+            if "/" in allele_str:
+                parts = allele_str.split("/")
+                ensembl_info.ref_allele = parts[0]
+                ensembl_info.alt_allele = parts[1] if len(parts) > 1 else None
+
+            # Transcript consequence details
+            tcs = vep_data.get("transcript_consequences", [])
+            if tcs:
+                best_tc = None
+                raw_tr = (raw_variant.get("transcript") or "").split(".")[0]
+                if raw_tr:
+                    for tc in tcs:
+                        if tc.get("transcript_id") and raw_tr in tc.get("transcript_id"):
+                            best_tc = tc
+                            break
+                if not best_tc:
+                    best_tc = tcs[0]
+
+                ensembl_info.gene_id = best_tc.get("gene_id")
+                ensembl_info.transcript_id = best_tc.get("transcript_id")
+                ensembl_info.biotype = best_tc.get("biotype")
+                ensembl_info.strand = best_tc.get("strand")
+                ensembl_info.impact = best_tc.get("impact")
+                ensembl_info.amino_acids = best_tc.get("amino_acids")
+                ensembl_info.codons = best_tc.get("codons")
+                ensembl_info.hgvsc = best_tc.get("hgvsc")
+                ensembl_info.hgvsp = best_tc.get("hgvsp")
+
+    # Additional variant identifiers from recoder / colocated variants
+    add_ids = set()
+    if isinstance(recoder, list) and recoder:
+        first = recoder[0]
+        inner = first
+        if isinstance(first, dict) and len(first) == 1:
+            inner = next(iter(first.values()))
+        for item_id in inner.get("id", []):
+            if item_id != ensembl_info.variant_id:
+                add_ids.add(str(item_id))
+        if not ensembl_info.hgvsc and inner.get("hgvsc"):
+            ensembl_info.hgvsc = inner.get("hgvsc")[0]
+        if not ensembl_info.hgvsp and inner.get("hgvsp"):
+            ensembl_info.hgvsp = inner.get("hgvsp")[0]
+
+    if vep_data:
+        for colocated in vep_data.get("colocated_variants", []):
+            col_id = colocated.get("id")
+            if col_id and col_id != ensembl_info.variant_id:
+                add_ids.add(str(col_id))
+            for syn in colocated.get("var_synonyms", []):
+                add_ids.add(str(syn))
+
+    ensembl_info.additional_ids = sorted(list(add_ids))
+
     # --- 2. Summarize ClinVar data ---
     clinvar_info = ClinVarInfo(
         status=clinvar_result.status,
@@ -900,75 +1022,116 @@ def build_evidence(
             first_key = next(iter(records))
             rec = records[first_key]
             
-            clinvar_info.variation_id = rec.get("uid") or rec.get("variation_id")
+            clinvar_info.variation_id = str(rec.get("uid") or rec.get("variation_id") or "") or None
             clinvar_info.accession = rec.get("accession")
             
-            # Use tri-partite germline classification if available, fallback to legacy
+            # Tri-partite classification details
             germline_info = rec.get("germline_classification", {})
             clinvar_info.clinical_significance = germline_info.get("description") or rec.get("clinical_significance")
             clinvar_info.review_status = germline_info.get("review_status") or rec.get("review_status")
-            
-            # Best-effort condition / trait name extraction from germline_classification trait_set
-            omim_id = None
-            omim_title = None
-            
+            clinvar_info.last_evaluated = germline_info.get("last_evaluated")
+
+            rev_stat = (clinvar_info.review_status or "").lower()
+            if "no conflicts" in rev_stat:
+                clinvar_info.conflict_status = "No conflicts"
+            elif "conflicting" in rev_stat:
+                clinvar_info.conflict_status = "Conflicting interpretations"
+            else:
+                clinvar_info.conflict_status = clinvar_info.review_status
+
+            # Submissions count
+            scvs = rec.get("supporting_submissions", {}).get("scv", [])
+            if scvs:
+                clinvar_info.submission_count = len(scvs)
+
+            clinvar_info.classifications_summary = {
+                "clinical_significance": clinvar_info.clinical_significance,
+                "review_status": clinvar_info.review_status,
+                "submission_count": clinvar_info.submission_count or 0,
+            }
+
+            # Traits & OMIM phenotypes
+            assoc_conds = []
+            omim_phenotypes = []
+            primary_omim_id = None
+            primary_omim_title = None
+
             trait_set = germline_info.get("trait_set", [])
             for trait in trait_set:
-                trait_name = trait.get("trait_name")
-                # Set as candidate condition
-                if trait_name and not clinvar_info.condition:
-                    clinvar_info.condition = trait_name
+                tname = trait.get("trait_name")
+                if tname and tname.lower() != "not provided" and tname not in assoc_conds:
+                    assoc_conds.append(tname)
+
                 for xref in trait.get("trait_xrefs", []):
                     if xref.get("db_source") == "OMIM":
-                        omim_id = xref.get("db_id")
-                        omim_title = trait_name
-                        break
-                if omim_id:
-                    break
-            
-            if not clinvar_info.condition:
-                clinvar_info.condition = rec.get("clinical_significance") # fallback
+                        m_id = str(xref.get("db_id"))
+                        omim_phenotypes.append(
+                            OMIMPhenotype(
+                                mim_number=m_id,
+                                title=tname,
+                                inheritance=None,
+                            )
+                        )
+                        if not primary_omim_id:
+                            primary_omim_id = m_id
+                            primary_omim_title = tname
 
-            if omim_id:
+            clinvar_info.associated_conditions = assoc_conds
+            if assoc_conds and not clinvar_info.condition:
+                clinvar_info.condition = assoc_conds[0]
+            elif not clinvar_info.condition:
+                clinvar_info.condition = rec.get("clinical_significance")
+
+            if primary_omim_id:
                 omim_info = OMIMInfo(
                     status="success",
                     matched=True,
-                    mim_number=omim_id,
-                    title=omim_title,
-                    inheritance=None # can be updated in downstream clinical intelligence module
+                    mim_number=primary_omim_id,
+                    title=primary_omim_title,
+                    inheritance=None,
+                    gene_mim_number=None,
+                    phenotypes=omim_phenotypes,
                 )
 
-            # Parse citations from ClinVar
+            # Parse ClinVar citations
+            supp_pmids = set()
             for cit in rec.get("citations", []):
                 pmid = str(cit.get("pubmed_id") or cit.get("id") or "")
                 if pmid and pmid.isdigit():
+                    supp_pmids.add(pmid)
                     pubmed_ids.add(pmid)
+
+            clinvar_info.supporting_pmids = sorted(list(supp_pmids))
 
     # --- 3. Extract gnomAD population frequencies ---
     gnomad_info = GnomADInfo(status="skipped", matched=False)
     if vep_data:
         gnomad_af = None
+        pop_freqs_map = {}
         for colocated in vep_data.get("colocated_variants", []):
             freqs = colocated.get("frequencies", {})
-            for allele, pop_freqs in freqs.items():
-                for pop, freq in pop_freqs.items():
+            for allele, p_freqs in freqs.items():
+                for pop, freq in p_freqs.items():
                     if "gnomad" in pop.lower():
                         try:
-                            gnomad_af = float(freq)
-                            break
+                            f_val = float(freq)
+                            pop_freqs_map[pop] = f_val
+                            if gnomad_af is None:
+                                gnomad_af = f_val
                         except (ValueError, TypeError):
                             pass
-                if gnomad_af is not None:
-                    break
-            if gnomad_af is not None:
-                break
-        
-        if gnomad_af is not None:
+
+        if pop_freqs_map or gnomad_af is not None:
+            gnomad_af_final = gnomad_af if gnomad_af is not None else 0.0
             gnomad_info = GnomADInfo(
                 status="success",
                 matched=True,
-                allele_frequency=gnomad_af,
-                pop_max_frequency=gnomad_af
+                allele_frequency=gnomad_af_final,
+                pop_max_frequency=gnomad_af_final,
+                allele_count=0 if gnomad_af_final == 0.0 else None,
+                allele_number=None,
+                homozygote_count=0 if gnomad_af_final == 0.0 else None,
+                population_frequencies=pop_freqs_map or None,
             )
 
         # Extract PubMed citations from VEP
@@ -978,11 +1141,13 @@ def build_evidence(
             
             # Extract HPO Phenotypes from VEP
             for phen in colocated.get("phenotypes", []):
-                # Look for HPO phenotype sources
                 hpo_id = phen.get("hpo_id") or phen.get("id")
                 phen_name = phen.get("phenotype") or phen.get("name")
                 if hpo_id and phen_name and hpo_id.upper().startswith("HP:"):
                     hpo_list.append(HPOInfo(hpo_id=hpo_id, phenotype=phen_name))
+
+    pubmed_list = sorted(list(pubmed_ids))
+    pubmed_details = fetch_pubmed_details(pubmed_list)
 
     return VariantResult(
         gene=raw_variant.get("gene"),
@@ -1001,7 +1166,8 @@ def build_evidence(
         gnomad=gnomad_info,
         omim=omim_info,
         hpo=hpo_list,
-        pubmed=sorted(list(pubmed_ids)),
+        pubmed=pubmed_list,
+        pubmed_details=pubmed_details,
     )
 
 

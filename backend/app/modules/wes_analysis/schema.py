@@ -62,6 +62,18 @@ class ExtractionInfo(BaseModel):
     source: str            # "variant_table" or "fallback_text"
     confidence: str        # "high" or "low"
 
+class PubMedArticle(BaseModel):
+    pmid: str
+    title: Optional[str] = None
+    journal: Optional[str] = None
+    year: Optional[str] = None
+    authors: Optional[str] = None
+
+class OMIMPhenotype(BaseModel):
+    mim_number: Optional[str] = None
+    title: Optional[str] = None
+    inheritance: Optional[str] = None
+
 class EnsemblInfo(BaseModel):
     status: str
     matched: bool
@@ -69,6 +81,20 @@ class EnsemblInfo(BaseModel):
     genomic_change: Optional[str] = None
     hgvs_g: Optional[str] = None
     consequence: Optional[str] = None
+    chromosome: Optional[str] = None
+    position: Optional[int] = None
+    ref_allele: Optional[str] = None
+    alt_allele: Optional[str] = None
+    hgvsc: Optional[str] = None
+    hgvsp: Optional[str] = None
+    gene_id: Optional[str] = None
+    transcript_id: Optional[str] = None
+    biotype: Optional[str] = None
+    strand: Optional[int] = None
+    impact: Optional[str] = None
+    amino_acids: Optional[str] = None
+    codons: Optional[str] = None
+    additional_ids: List[str] = []
 
 class ClinVarInfo(BaseModel):
     status: str
@@ -78,6 +104,12 @@ class ClinVarInfo(BaseModel):
     clinical_significance: Optional[str] = None
     review_status: Optional[str] = None
     condition: Optional[str] = None
+    submission_count: Optional[int] = None
+    last_evaluated: Optional[str] = None
+    conflict_status: Optional[str] = None
+    associated_conditions: List[str] = []
+    classifications_summary: Optional[Dict[str, Any]] = None
+    supporting_pmids: List[str] = []
 
 class OMIMInfo(BaseModel):
     status: str
@@ -85,12 +117,18 @@ class OMIMInfo(BaseModel):
     mim_number: Optional[str] = None
     title: Optional[str] = None
     inheritance: Optional[str] = None
+    gene_mim_number: Optional[str] = None
+    phenotypes: List[OMIMPhenotype] = []
 
 class GnomADInfo(BaseModel):
     status: str
     matched: bool
     allele_frequency: Optional[float] = None
     pop_max_frequency: Optional[float] = None
+    allele_count: Optional[int] = None
+    allele_number: Optional[int] = None
+    homozygote_count: Optional[int] = None
+    population_frequencies: Optional[Dict[str, float]] = None
 
 class HPOInfo(BaseModel):
     hpo_id: str
@@ -128,6 +166,7 @@ class VariantResult(BaseModel):
     omim: Optional[OMIMInfo] = None
     hpo: List[HPOInfo] = []
     pubmed: List[str] = []
+    pubmed_details: List[PubMedArticle] = []
 
 class WESAnalysisResponse(BaseModel):
     """
@@ -137,4 +176,5 @@ class WESAnalysisResponse(BaseModel):
     extraction: ExtractionInfo
     variants: List[VariantResult] = []
     message: Optional[str] = None      # set when status != "success"
+
 
