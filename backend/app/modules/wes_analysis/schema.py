@@ -1,31 +1,34 @@
-# Pydantic v2 schemas for the WES Analysis module (Module 1).
+# Pydantic v2 schemas for WES Variant Annotation & Retrieval
 
 """
 Schemas:
-    VariantInput        - request body for /test-variant
-    DatasourceResult    - per-datasource status + raw data envelope
-    ExtractionInfo      - source and confidence of variant extraction
-    EnsemblInfo         - summarized Ensembl response
-    ClinVarInfo         - summarized ClinVar response
-    OMIMInfo            - summarized OMIM response
-    GnomADInfo          - summarized gnomAD response
-    HPOInfo             - HPO phenotype mapping
-    VariantResult       - a single extracted variant + its summarized evidence
-    WESAnalysisResponse - top-level response for /analyze and /test-variant
+    VariantInput            - Request payload for /test-variant
+    DatasourceResult        - Wrap envelope for external API lookups
+    ReportedVariant         - Variant details extracted directly from WES report
+    NormalizedVariant       - Standardized genomic HGVS / rsID notations
+    GeneInfo                - Symbol, ID, chromosome, description, aliases
+    EnsemblAnnotation       - Annotations from Ensembl REST API / VEP
+    ClinVarAnnotation       - Annotations from NCBI ClinVar E-utilities
+    GnomADAnnotation        - Allele frequencies and population counts from gnomAD
+    OMIMAnnotation          - MIM numbers, disease titles, phenotypes, inheritance
+    LiteratureAnnotation    - PubMed ID counts and article references
+    DatabaseAnnotations     - Combined database annotations object
+    VerificationInfo        - Identity verification & database match statuses
+    SingleVariantAnnotation - Complete single variant annotation bundle
+    WESAnalysisResponse     - Top-level response for /analyze and /test-variant
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 # ---------------------------------------------------------------------------
-# Request schemas
+# Input & Helper Schemas
 # ---------------------------------------------------------------------------
 
 class VariantInput(BaseModel):
     """
     Manually supplied variant for the /test-variant endpoint.
-    All fields except 'gene' are optional because real WES reports
-    may omit any of them.
     """
     gene: str
     transcript: Optional[str] = None
@@ -36,145 +39,183 @@ class VariantInput(BaseModel):
     classification: Optional[str] = None
     variant_type: Optional[str] = None
 
-# ---------------------------------------------------------------------------
-# Internal helper schema (unchanged)
-# ---------------------------------------------------------------------------
 
 class DatasourceResult(BaseModel):
     """
-    Wraps the result from a single external data source.
-
-    status values:
-        "success"       - data returned successfully
-        "not_found"     - query succeeded but no record exists
-        "error"         - HTTP or connection failure
-        "skipped"       - not enough information to query (e.g. no gene name)
+    Wraps the raw response or error from an external genomic API.
     """
     status: str
     data: Optional[Dict[str, Any]] = None
     message: Optional[str] = None
 
-# ---------------------------------------------------------------------------
-# New summary models for response
-# ---------------------------------------------------------------------------
-
-class ExtractionInfo(BaseModel):
-    source: str            # "variant_table" or "fallback_text"
-    confidence: str        # "high" or "low"
-
-class PubMedArticle(BaseModel):
-    pmid: str
-    title: Optional[str] = None
-    journal: Optional[str] = None
-    year: Optional[str] = None
-    authors: Optional[str] = None
-
-class OMIMPhenotype(BaseModel):
-    mim_number: Optional[str] = None
-    title: Optional[str] = None
-    inheritance: Optional[str] = None
-
-class EnsemblInfo(BaseModel):
-    status: str
-    matched: bool
-    variant_id: Optional[str] = None
-    genomic_change: Optional[str] = None
-    hgvs_g: Optional[str] = None
-    consequence: Optional[str] = None
-    chromosome: Optional[str] = None
-    position: Optional[int] = None
-    ref_allele: Optional[str] = None
-    alt_allele: Optional[str] = None
-    hgvsc: Optional[str] = None
-    hgvsp: Optional[str] = None
-    gene_id: Optional[str] = None
-    transcript_id: Optional[str] = None
-    biotype: Optional[str] = None
-    strand: Optional[int] = None
-    impact: Optional[str] = None
-    amino_acids: Optional[str] = None
-    codons: Optional[str] = None
-    additional_ids: List[str] = []
-
-class ClinVarInfo(BaseModel):
-    status: str
-    matched: bool
-    variation_id: Optional[str] = None
-    accession: Optional[str] = None
-    clinical_significance: Optional[str] = None
-    review_status: Optional[str] = None
-    condition: Optional[str] = None
-    submission_count: Optional[int] = None
-    last_evaluated: Optional[str] = None
-    conflict_status: Optional[str] = None
-    associated_conditions: List[str] = []
-    classifications_summary: Optional[Dict[str, Any]] = None
-    supporting_pmids: List[str] = []
-
-class OMIMInfo(BaseModel):
-    status: str
-    matched: bool
-    mim_number: Optional[str] = None
-    title: Optional[str] = None
-    inheritance: Optional[str] = None
-    gene_mim_number: Optional[str] = None
-    phenotypes: List[OMIMPhenotype] = []
-
-class GnomADInfo(BaseModel):
-    status: str
-    matched: bool
-    allele_frequency: Optional[float] = None
-    pop_max_frequency: Optional[float] = None
-    allele_count: Optional[int] = None
-    allele_number: Optional[int] = None
-    homozygote_count: Optional[int] = None
-    population_frequencies: Optional[Dict[str, float]] = None
-
-class HPOInfo(BaseModel):
-    hpo_id: str
-    phenotype: str
 
 # ---------------------------------------------------------------------------
-# Response schemas
+# Core Variant & Public Database Annotation Models
 # ---------------------------------------------------------------------------
 
-class VariantResult(BaseModel):
+class ReportedVariant(BaseModel):
     """
-    A single variant with its extracted fields and external evidence.
+    Variant details extracted from the original report (unaltered).
     """
-    # Extracted variant fields (all optional — WES reports vary in completeness)
     gene: Optional[str] = None
     transcript: Optional[str] = None
     cdna: Optional[str] = None
     protein: Optional[str] = None
-    rsid: Optional[str] = None
     zygosity: Optional[str] = None
     classification: Optional[str] = None
     variant_type: Optional[str] = None
 
-    # Validation
-    is_valid: bool = True
-    validation_message: Optional[str] = None
 
-    # Normalized HGVS (simple concatenation)
-    normalized_hgvs: Optional[str] = None
+class NormalizedVariant(BaseModel):
+    """
+    Resolved genomic identity and standard HGVS notations.
+    """
+    hgvs_c: Optional[str] = None
+    hgvs_p: Optional[str] = None
+    hgvs_g: Optional[str] = None
+    rsid: Optional[str] = None
+    spdi: Optional[str] = None
 
-    # External evidence (summarized)
-    ensembl: EnsemblInfo
-    clinvar: ClinVarInfo
-    gnomad: Optional[GnomADInfo] = None
-    omim: Optional[OMIMInfo] = None
-    hpo: List[HPOInfo] = []
-    pubmed: List[str] = []
-    pubmed_details: List[PubMedArticle] = []
+
+class GeneInfo(BaseModel):
+    """
+    Comprehensive gene-level information retrieved from public databases.
+    """
+    symbol: Optional[str] = None
+    gene_id: Optional[str] = None
+    chromosome: Optional[str] = None
+    cytoband: Optional[str] = None
+    strand: Optional[str] = None
+    description: Optional[str] = None
+    aliases: List[str] = Field(default_factory=list)
+
+
+class EnsemblAnnotation(BaseModel):
+    """
+    Ensembl REST / VEP variant annotations.
+    """
+    matched: bool = False
+    consequence: Optional[str] = None
+    hgvs_g: Optional[str] = None
+    spdi: Optional[str] = None
+    rsid: Optional[str] = None
+    biotype: Optional[str] = None
+    gene_id: Optional[str] = None
+    transcript_id: Optional[str] = None
+    impact: Optional[str] = None
+    in_silico_predictions: Dict[str, str] = Field(default_factory=dict)
+
+
+class ClinVarAnnotation(BaseModel):
+    """
+    NCBI ClinVar accession and evidence annotations.
+    """
+    matched: bool = False
+    variation_id: Optional[str] = None
+    accession: Optional[str] = None
+    clinical_significance: Optional[str] = None
+    review_status: Optional[str] = None
+    last_evaluated: Optional[str] = None
+    variation_type: Optional[str] = None
+    conditions: List[str] = Field(default_factory=list)
+    submission_count: Optional[Any] = None
+    conflict: bool = False
+    supporting_pmids: List[str] = Field(default_factory=list)
+
+
+class GnomADAnnotation(BaseModel):
+    """
+    gnomAD population frequencies and allele counts.
+    """
+    matched: bool = False
+    allele_frequency: Optional[float] = None
+    allele_count: Optional[int] = None
+    allele_number: Optional[int] = None
+    homozygote_count: Optional[int] = None
+    populations: Dict[str, Any] = Field(default_factory=dict)
+
+
+class OMIMAnnotation(BaseModel):
+    """
+    Online Mendelian Inheritance in Man (OMIM) disease & phenotype annotations.
+    """
+    matched: bool = False
+    mim_number: Optional[str] = None
+    title: Optional[str] = None
+    inheritance: Optional[str] = None
+    phenotypes: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class HPOAnnotation(BaseModel):
+    """
+    Human Phenotype Ontology (HPO) clinical term annotations.
+    """
+    matched: bool = False
+    hpo_terms: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class LiteratureAnnotation(BaseModel):
+    """
+    PubMed literature evidence counts, article IDs, and metadata.
+    """
+    pubmed_count: int = 0
+    pubmed_ids: List[str] = Field(default_factory=list)
+    articles: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class DatabaseAnnotations(BaseModel):
+    """
+    Combined public database evidence for a variant.
+    """
+    ensembl: Optional[EnsemblAnnotation] = None
+    clinvar: Optional[ClinVarAnnotation] = None
+    gnomad: Optional[GnomADAnnotation] = None
+    omim: Optional[OMIMAnnotation] = None
+    hpo: Optional[HPOAnnotation] = None
+    literature: Optional[LiteratureAnnotation] = None
+
+
+class VerificationInfo(BaseModel):
+    """
+    Cross-database identity verification, match flags, and classification discrepancies.
+    """
+    variant_identity_verified: bool = False
+    ensembl_match: bool = False
+    clinvar_match: bool = False
+    gnomad_match: bool = False
+    discrepancies: List[Dict[str, str]] = Field(default_factory=list)
+
+
+class SingleVariantAnnotation(BaseModel):
+    """
+    Clean bundle for a single variant and all its public database annotations.
+    """
+    reported_variant: ReportedVariant
+    normalized_variant: NormalizedVariant
+    gene: GeneInfo
+    annotations: DatabaseAnnotations
+    verification: VerificationInfo
+
+
+# ---------------------------------------------------------------------------
+# Top-Level API Response Schema
+# ---------------------------------------------------------------------------
 
 class WESAnalysisResponse(BaseModel):
     """
-    Top-level response for both /analyze and /test-variant endpoints.
+    Top-level API response for /analyze and /test-variant endpoints.
+    Supports both single-variant top-level fields and multi-variant list.
     """
-    status: str                         # "success" | "partial" | "error"
-    extraction: ExtractionInfo
-    variants: List[VariantResult] = []
-    message: Optional[str] = None      # set when status != "success"
+    status: str = "success"
 
+    # Single variant top-level format
+    reported_variant: Optional[ReportedVariant] = None
+    normalized_variant: Optional[NormalizedVariant] = None
+    gene: Optional[GeneInfo] = None
+    annotations: Optional[DatabaseAnnotations] = None
+    verification: Optional[VerificationInfo] = None
 
+    # Multi-variant list format
+    variants: Optional[List[SingleVariantAnnotation]] = None
+
+    message: Optional[str] = None

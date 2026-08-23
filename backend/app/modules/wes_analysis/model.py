@@ -1,5 +1,7 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, JSON, DateTime
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.core.database.base import Base
 
@@ -12,11 +14,17 @@ class WESReport(Base):
     patient_id = Column(
         Integer,
         ForeignKey("patients.id"),
-        nullable=False
+        nullable=True
     )
 
-    report_name = Column(String(255))
+    report_name = Column(String(255), nullable=True)
 
-    file_path = Column(String(500))
+    file_path = Column(String(500), nullable=True)
 
-    patient = relationship("Patient")
+    sample_id = Column(String(100), nullable=True)
+
+    analysis_data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+
+    patient = relationship("Patient")
