@@ -9,45 +9,65 @@ import re
 def get_json(url, params=None):
     """
     Perform a GET request and return JSON.
+
+    External evidence services are allowed to fail without
+    crashing the entire WES pipeline.
     """
 
-    response = requests.get(
-        url,
-        params=params,
-        headers={
-            "Accept": "application/json"
-        },
-        timeout=30
-    )
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers={
+                "Accept": "application/json"
+            },
+            timeout=30
+        )
 
-    response.raise_for_status()
+        response.raise_for_status()
 
-    return response.json()
+        return {
+            "status": "success",
+            "data": response.json()
+        }
 
+    except requests.exceptions.Timeout:
+        return {
+            "status": "error",
+            "error_type": "timeout",
+            "message": "External service request timed out."
+        }
 
+    except requests.exceptions.RequestException as exc:
+        return {
+            "status": "error",
+            "error_type": "request",
+            "message": str(exc)
+        }
+
+    except ValueError:
+        return {
+            "status": "error",
+            "error_type": "invalid_json",
+            "message": "External service returned invalid JSON."
+        }
 # ============================================================
 # 4.1 VARIANTVALIDATOR
 # ============================================================
 
 def validate_with_variantvalidator(hgvs):
-    """
-    Validate an HGVS variant using VariantValidator.
-
-    Example:
-        NM_001844.4:c.3559C>T
-    """
-
     url = (
         "https://rest.variantvalidator.org/"
-        "VariantValidator/variantvalidator/"
-        "GRCh38/"
-        f"{hgvs}/"
-        "all"
+        "VariantValidator/variantvalidator/GRCh38/"
+        f"{hgvs}/all"
     )
 
-    return get_json(url)
+    result = get_json(url)
 
+    if result.get("status") != "success":
+        return result
 
+    return result["data"]
 def extract_validation_evidence(data, hgvs):
     """
     Extract useful information from VariantValidator.
@@ -161,8 +181,8 @@ def lookup_myvariant(genomic_variant):
     """
     Query MyVariant.info using genomic HGVS.
 
-    Example:
-        chr12:g.47976001G>A
+    Returns a normalized response that distinguishes
+    successful lookups from external-service failures.
     """
 
     url = (
@@ -174,10 +194,15 @@ def lookup_myvariant(genomic_variant):
         "assembly": "hg38"
     }
 
-    return get_json(
+    result = get_json(
         url,
         params=params
     )
+
+    if result.get("status") != "success":
+        return result
+
+    return result["data"]
 
 
 def extract_myvariant_evidence(
@@ -460,50 +485,170 @@ def extract_myvariant_evidence(
 # 4.3 dbVar
 # ============================================================
 
-def search_dbvar_cnv(
-    gene,
-    chromosome,
-    start,
-    end
-):
-    """
-    Search dbVar for structural-variant candidates
-    around a genomic region.
-    """
-
-    url = (
-        "https://eutils.ncbi.nlm.nih.gov/"
-        "entrez/eutils/esearch.fcgi"
-    )
-
-    query = (
-        f'{gene}[Gene] AND '
-        f'{chromosome}[Chr] AND '
-        f'('
-        f'{start}:{end}[ChrPos] OR '
-        f'{start}:{end}[ChrEnd]'
-        f') AND '
-        f'"deletion"[variant_type]'
-    )
+def search_dbvar_cnv(gene, chromosome, start, end):
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 
     params = {
         "db": "dbvar",
-        "term": query,
+        "term": (
+            f"GRCh38[{chromosome}] AND "
+            f"{gene}[Gene Name] AND "
+            f"({start}:{end}[Base Position])"
+        ),
         "retmode": "json",
-        "retmax": 50
     }
 
-    data = get_json(
-        url,
-        params=params
+    data = get_json(url, params=params)
+
+    if data.get("status") != "success":
+        return data
+
+    return data["data"]["esearchresult"]["idlist"]
+# ============================================================
+# 4.4 SNV EVIDENCE
+# ============================================================
+
+def get_snv_evidence(record):
+    """
+    Build SNV evidence using generic normalization.
+
+    Flow:
+        record
+          ↓
+        normalize_snv()
+          ↓
+        VariantValidator
+          ↓
+        MyVariant.info
+    """
+
+    # --------------------------------------------------------
+    # Normalize SNV
+    # --------------------------------------------------------
+
+    normalization = normalize_snv(record)
+
+    if normalization.get("status") != "success":
+        return {
+            "status": "normalization_failed",
+            "source_variant": record,
+            "normalization": normalization,
+        }
+
+    transcript_hgvs = normalization.get(
+        "transcript_hgvs"
     )
 
-    return data[
-        "esearchresult"
-    ][
-        "idlist"
-    ]
+    if not transcript_hgvs:
+        return {
+            "status": "normalization_failed",
+            "source_variant": record,
+            "normalization": normalization,
+            "message": "Transcript HGVS is missing."
+        }
 
+    # --------------------------------------------------------
+    # VariantValidator
+    # --------------------------------------------------------
+
+    print("\nRunning VariantValidator...")
+
+    validator_raw = validate_with_variantvalidator(
+        transcript_hgvs
+    )
+
+    validator = extract_validation_evidence(
+        validator_raw,
+        transcript_hgvs
+    )
+
+    # --------------------------------------------------------
+    # Stop if VariantValidator did not validate
+    # --------------------------------------------------------
+
+    if not validator.get("validated"):
+        return {
+            "status": "validation_failed",
+            "source_variant": record,
+            "normalization": normalization,
+            "variantvalidator": validator,
+        }
+
+    # --------------------------------------------------------
+    # Get genomic representation
+    # --------------------------------------------------------
+
+    genomic = validator.get(
+        "genomic"
+    )
+
+    vcf = validator.get(
+        "vcf"
+    )
+
+    genomic_variant = None
+
+    if (
+        isinstance(vcf, dict)
+        and vcf.get("chromosome") is not None
+        and vcf.get("position") is not None
+        and vcf.get("reference") is not None
+        and vcf.get("alternate") is not None
+    ):
+        genomic_variant = (
+            f"chr{vcf['chromosome']}:"
+            f"g.{vcf['position']}"
+            f"{vcf['reference']}>"
+            f"{vcf['alternate']}"
+        )
+
+    # --------------------------------------------------------
+    # MyVariant.info
+    # --------------------------------------------------------
+
+    myvariant = {
+        "found": False,
+        "message": "Genomic representation unavailable."
+    }
+
+    if genomic_variant:
+
+        print(
+            "Running MyVariant.info..."
+        )
+
+        myvariant_raw = lookup_myvariant(
+            genomic_variant
+        )
+
+        if myvariant_raw.get("status") == "error":
+            myvariant = {
+                "found": False,
+                "status": "unavailable",
+                "error_type": myvariant_raw.get(
+                    "error_type"
+                ),
+                "message": myvariant_raw.get(
+                    "message"
+                ),
+            }
+        else:
+            myvariant = extract_myvariant_evidence(
+                myvariant_raw,
+                record.get("variant")
+            )
+
+    # --------------------------------------------------------
+    # Final SNV evidence
+    # --------------------------------------------------------
+
+    return {
+        "status": "success",
+        "source_variant": record,
+        "normalization": normalization,
+        "variantvalidator": validator,
+        "myvariant": myvariant,
+    }
 
 def get_dbvar_summaries(ids):
     """
@@ -524,10 +669,12 @@ def get_dbvar_summaries(ids):
         "retmode": "json"
     }
 
-    data = get_json(
-        url,
-        params=params
-    )
+    data = get_json(url, params=params)
+
+    if data.get("status") != "success":
+        return data
+
+    data = data["data"] 
 
     results = []
 
@@ -747,111 +894,191 @@ def get_cnv_evidence(record):
         },
         "dbvar_candidates": candidates
     }
+def resolve_snv_transcript(gene, variant):
+    gene_variant = f"{gene}:{variant}"
+
+    data = validate_with_variantvalidator(gene_variant)
+
+    # External service failure
+    if data.get("status") == "error":
+        return data
+
+    warning = data.get("validation_warning_1", {})
+    warnings = warning.get("validation_warnings", [])
+
+    transcript_text = " ".join(warnings)
+
+    transcript_pattern = r"\b(?:NM_|NR_|ENST)\d+(?:\.\d+)?\b"
+    transcripts = re.findall(transcript_pattern, transcript_text)
+
+    transcripts = list(dict.fromkeys(transcripts))
+
+    return {
+        "status": "success" if transcripts else "partial",
+        "gene": gene,
+        "variant": variant,
+        "transcripts": transcripts,
+    }
+def select_valid_snv_transcript(gene, variant, transcripts):
+    """
+    Select a transcript that produces a valid VariantValidator result.
+
+    Candidates are tested in the order returned by VariantValidator.
+    """
+
+    tested = []
+
+    for transcript in transcripts:
+
+        transcript_hgvs = (
+            f"{transcript}:{variant}"
+        )
+
+        data = validate_with_variantvalidator(
+            transcript_hgvs
+        )
+
+        flag = data.get(
+            "flag"
+        )
+
+        tested.append({
+            "transcript": transcript,
+            "flag": flag
+        })
+
+        if flag == "gene_variant":
+            return {
+                "status": "success",
+                "selected_transcript": transcript,
+                "transcript_hgvs": transcript_hgvs,
+                "tested": tested
+            }
+
+    return {
+        "status": "not_found",
+        "selected_transcript": None,
+        "transcript_hgvs": None,
+        "tested": tested
+    }
 def normalize_snv(record):
     """
-    Resolve an SNV into a transcript-level and genomic representation.
+    Normalize an SNV without hardcoding a specific gene/variant.
 
-    Current supported test case:
-        COL2A1 c.3559C>T
+    Transcript resolution is performed through VariantValidator.
     """
 
     gene = record.get("gene")
     variant = record.get("variant")
 
-    if (
-        gene == "COL2A1"
-        and variant == "c.3559C>T"
-    ):
+    if not gene:
+        return {
+            "status": "error",
+            "message": "SNV gene is missing."
+        }
+
+    if not variant:
+        return {
+            "status": "error",
+            "message": "SNV variant is missing."
+        }
+
+    # --------------------------------------------------------
+    # Use transcript supplied by the report when available
+    # --------------------------------------------------------
+
+    transcript = record.get("transcript")
+
+    if transcript:
+
         return {
             "status": "success",
             "input_variant": variant,
             "gene": gene,
-            "transcript": "NM_001844.4",
-            "transcript_hgvs": "NM_001844.4:c.3559C>T",
-            "genomic": "NC_000012.12:g.47976001G>A",
-            "genomic_variant": "chr12:g.47976001G>A",
-            "assembly": "GRCh38",
+            "transcript": transcript,
+            "transcript_hgvs": (
+                f"{transcript}:{variant}"
+            ),
+            "assembly": "GRCh38"
         }
 
-    return {
-        "status": "unsupported",
+    # --------------------------------------------------------
+    # Resolve transcript dynamically
+    # --------------------------------------------------------
+
+    resolution = resolve_snv_transcript(
+        gene,
+        variant
+    )
+
+    if resolution["status"] != "success":
+
+        return {
+            "status": "partial",
+            "input_variant": variant,
+            "gene": gene,
+            "transcript": None,
+            "transcript_hgvs": None,
+            "assembly": "GRCh38",
+            "message": (
+                "No transcript could be resolved "
+                "automatically."
+            ),
+            "transcript_candidates": (
+                resolution.get(
+                    "transcripts",
+                    []
+                )
+            )
+        }
+
+    transcripts = resolution[
+        "transcripts"
+    ]
+
+    # Use the first candidate initially.
+    # We will improve transcript selection next.
+    
+    selection = select_valid_snv_transcript(
+        gene,
+        variant,
+        transcripts
+    )
+
+    if selection["status"] != "success":
+        return {
+            "status": "partial",
+            "input_variant": variant,
+            "gene": gene,
+            "transcript": None,
+        "transcript_hgvs": None,
+        "assembly": "GRCh38",
         "message": (
-            "SNV normalization is not yet implemented "
-            "for this variant."
+            "No candidate transcript produced "
+            "a valid VariantValidator result."
         ),
+        "transcript_candidates": transcripts,
+        "transcript_tests": selection["tested"]
     }
-# ============================================================
-# 4.4 SNV EVIDENCE
-# ============================================================
 
-def get_snv_evidence(record):
-    """
-    Build evidence for the current SNV.
-
-    The current test case is:
-        COL2A1 c.3559C>T
-    """
-
-    normalization = normalize_snv(record)
-
-    if normalization["status"] != "success":
-        return normalization
-
-    transcript_hgvs = normalization["transcript_hgvs"]
-    genomic_variant = normalization["genomic_variant"]
-    variant = record.get("variant")
-
-
-    # --------------------------------------------------------
-    # VariantValidator
-    # --------------------------------------------------------
-
-    print(
-        "\nRunning VariantValidator..."
-    )
-
-    validator_raw = (
-        validate_with_variantvalidator(
-            transcript_hgvs
-        )
-    )
-
-    validator = (
-        extract_validation_evidence(
-            validator_raw,
-            transcript_hgvs
-        )
-    )
-
-    # --------------------------------------------------------
-    # MyVariant
-    # --------------------------------------------------------
-
-    print(
-        "Running MyVariant.info..."
-    )
-
-    myvariant_raw = lookup_myvariant(
-        genomic_variant
-    )
-
-    myvariant = (
-        extract_myvariant_evidence(
-            myvariant_raw,
-            variant
-        )
-    )
+    selected_transcript = selection[
+        "selected_transcript"
+    ]
 
     return {
-    "status": "success",
-    "source_variant": record,
-    "normalization": normalization,
-    "variantvalidator": validator,
-    "myvariant": myvariant
-}
-
-
-# ============================================================
+        "status": "success",
+        "input_variant": variant,
+        "gene": gene,
+        "transcript": selected_transcript,
+        "transcript_hgvs": selection[
+            "transcript_hgvs"
+        ],
+        "assembly": "GRCh38",
+        "transcript_candidates": transcripts,
+        "selected_by": "VariantValidator",
+        "transcript_tests": selection["tested"]
+    }
+    # ============================================================
 # 4.5 MAIN ENTRY POINT
 # ============================================================
 
