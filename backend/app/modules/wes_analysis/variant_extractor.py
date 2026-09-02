@@ -1,6 +1,6 @@
 import re
 
-from pdf_extractor import extract_text_from_pdf
+from .pdf_extractor import extract_text_from_pdf
 
 
 # ==========================================

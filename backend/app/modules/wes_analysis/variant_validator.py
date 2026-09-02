@@ -87,15 +87,6 @@ def validate_variant(record):
     # 5. SNV warning
     # ==========================================
 
-    if variant_type == "SNV":
-
-        if not record.get("transcript"):
-
-            warnings.append(
-                "Transcript not extracted; "
-                "will be resolved during normalization"
-            )
-
 
     # ==========================================
     # FINAL RESULT

@@ -45,7 +45,11 @@ def combine_evidence(
             "variantvalidator",
             {}
         )
-
+        
+        normalization = evidence_result.get(
+    "normalization",
+    {}
+)
         myvariant = evidence_result.get(
             "myvariant",
             {}
@@ -56,6 +60,7 @@ def combine_evidence(
         # --------------------------------------------
 
         combined["identity"] = {
+            "normalization": normalization,
             "input_hgvs": validator.get(
                 "input_hgvs"
             ),

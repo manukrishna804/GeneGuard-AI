@@ -664,7 +664,39 @@ def get_cnv_evidence(record):
         "dbvar_candidates": candidates
     }
 
+def normalize_snv(record):
+    """
+    Resolve an SNV into a transcript-level and genomic representation.
 
+    Current supported test case:
+        COL2A1 c.3559C>T
+    """
+
+    gene = record.get("gene")
+    variant = record.get("variant")
+
+    if (
+        gene == "COL2A1"
+        and variant == "c.3559C>T"
+    ):
+        return {
+            "status": "success",
+            "input_variant": variant,
+            "gene": gene,
+            "transcript": "NM_001844.4",
+            "transcript_hgvs": "NM_001844.4:c.3559C>T",
+            "genomic": "NC_000012.12:g.47976001G>A",
+            "genomic_variant": "chr12:g.47976001G>A",
+            "assembly": "GRCh38",
+        }
+
+    return {
+        "status": "unsupported",
+        "message": (
+            "SNV normalization is not yet implemented "
+            "for this variant."
+        ),
+    }
 # ============================================================
 # 4.4 SNV EVIDENCE
 # ============================================================
@@ -677,40 +709,15 @@ def get_snv_evidence(record):
         COL2A1 c.3559C>T
     """
 
-    gene = record.get(
-        "gene"
-    )
+    normalization = normalize_snv(record)
 
-    variant = record.get(
-        "variant"
-    )
+    if normalization["status"] != "success":
+        return normalization
 
-    # --------------------------------------------------------
-    # Current MedGenome test case
-    # --------------------------------------------------------
+    transcript_hgvs = normalization["transcript_hgvs"]
+    genomic_variant = normalization["genomic_variant"]
+    variant = record.get("variant")
 
-    if (
-        gene == "COL2A1"
-        and variant == "c.3559C>T"
-    ):
-
-        transcript_hgvs = (
-            "NM_001844.4:c.3559C>T"
-        )
-
-        genomic_variant = (
-            "chr12:g.47976001G>A"
-        )
-
-    else:
-
-        return {
-            "status": "unsupported",
-            "message": (
-                "SNV normalization is not yet "
-                "implemented for this variant."
-            )
-        }
 
     # --------------------------------------------------------
     # VariantValidator
@@ -753,17 +760,12 @@ def get_snv_evidence(record):
     )
 
     return {
-
-        "status": "success",
-
-        "source_variant": record,
-
-        "variantvalidator":
-            validator,
-
-        "myvariant":
-            myvariant
-    }
+    "status": "success",
+    "source_variant": record,
+    "normalization": normalization,
+    "variantvalidator": validator,
+    "myvariant": myvariant
+}
 
 
 # ============================================================

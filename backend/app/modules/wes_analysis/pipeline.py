@@ -1,10 +1,10 @@
 import json
 
-from pdf_extractor import extract_text_from_pdf
-from variant_extractor import extract_variant_records
-from variant_validator import validate_variant
-from variant_evidence import get_variant_evidence
-from evidence_combiner import combine_evidence
+from .pdf_extractor import extract_text_from_pdf
+from .variant_extractor import extract_variant_records
+from .variant_validator import validate_variant
+from .variant_evidence import get_variant_evidence
+from .evidence_combiner import combine_evidence
 
 
 # ============================================================
@@ -60,8 +60,9 @@ def analyze_wes_report(pdf_path):
         # ----------------------------------------------------
 
         combined = combine_evidence(
-            record,
-            evidence
+            variant_record=record,
+            validation_result=validation,
+            evidence_result=evidence
         )
 
         results.append(combined)
