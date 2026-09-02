@@ -45,11 +45,12 @@ def combine_evidence(
             "variantvalidator",
             {}
         )
-        
+
         normalization = evidence_result.get(
-    "normalization",
-    {}
-)
+            "normalization",
+            {}
+        )
+
         myvariant = evidence_result.get(
             "myvariant",
             {}
@@ -177,6 +178,10 @@ def combine_evidence(
             "search_region",
             {}
         )
+        normalization = evidence_result.get(
+            "normalization",
+            {}
+                )
 
         candidates = evidence_result.get(
             "dbvar_candidates",
@@ -184,6 +189,7 @@ def combine_evidence(
         )
 
         combined["identity"] = {
+            "normalization": normalization,
             "assembly": "GRCh38",
             "search_region": search_region
         }
@@ -192,11 +198,25 @@ def combine_evidence(
         # dbVar evidence
         # --------------------------------------------
 
-        combined["evidence"]["dbvar"] = {
-            "match_status": "candidate"
-            if candidates
-            else "not_found",
+        candidate_match_status = "not_found"
 
+        for candidate in candidates:
+            status = candidate.get("match_status")
+
+            if status == "exact":
+                candidate_match_status = "exact"
+                break
+
+            if status == "overlap":
+                candidate_match_status = "overlap"
+
+        combined["evidence"]["dbvar"] = {
+            "search_status": (
+                "found"
+                if candidates
+                else "not_found"
+            ),
+            "match_status": candidate_match_status,
             "candidates": candidates
         }
 

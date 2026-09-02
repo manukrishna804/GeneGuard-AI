@@ -1,4 +1,5 @@
 import requests
+import re
 
 
 # ============================================================
@@ -589,50 +590,104 @@ def get_dbvar_summaries(ids):
 
     return results
 
-
-def get_cnv_evidence(record):
+def normalize_cnv(record):
     """
-    Build dbVar evidence for the current PYCR1
-    CNV test case.
+    Parse a genomic CNV representation into structured coordinates.
+
+    Example:
+        chr17:g.(81936194_81936747)_(81937239_?)del
     """
 
-    gene = record.get(
-        "gene"
+    variant = record.get("variant")
+
+    if not variant:
+        return {
+            "status": "error",
+            "message": "CNV variant is missing."
+        }
+
+    pattern = (
+    r"^chr(?P<chromosome>[0-9]+|X|Y):g\."
+    r"\((?P<left_start>\d+)_(?P<left_end>\d+)\)"
+    r"\s*_\s*"
+    r"\((?P<right_start>\d+)_\?\)"
+    r"(?P<variant_type>del|dup)$"
     )
 
-    variant = record.get(
-        "variant"
+    match = re.match(
+        pattern,
+        variant
     )
 
-    # --------------------------------------------------------
-    # Current MedGenome CNV
-    # --------------------------------------------------------
-
-    if (
-        gene == "PYCR1"
-        and "81936194" in variant
-    ):
-
-        chromosome = "17"
-
-        start = 81936194
-
-        # The report's second endpoint is uncertain.
-        end = 81937239
-
-    else:
-
+    if not match:
         return {
             "status": "unsupported",
+            "input_variant": variant,
             "message": (
-                "CNV lookup is not yet "
-                "implemented for this variant."
+                "CNV notation could not be parsed."
             )
         }
 
-    print(
-        "\nRunning dbVar..."
-    )
+    chromosome = match.group("chromosome")
+    start = int(match.group("left_start"))
+    end = int(match.group("right_start"))
+    variant_type = match.group("variant_type")
+
+    return {
+        "status": "success",
+        "input_variant": variant,
+        "chromosome": chromosome,
+        "start": start,
+        "end": end,
+        "variant_type": variant_type,
+        "assembly": "GRCh38"
+    }
+def classify_cnv_match(
+    report_start,
+    report_end,
+    candidate_start,
+    candidate_end
+):
+    """
+    Classify the relationship between the reported CNV
+    coordinates and a dbVar candidate.
+
+    Returns:
+        exact     -> same start and end
+        overlap   -> regions overlap but are not identical
+        no_match  -> no coordinate overlap
+    """
+
+    if (
+        report_start == candidate_start
+        and report_end == candidate_end
+    ):
+        return "exact"
+
+    if (
+        report_start <= candidate_end
+        and candidate_start <= report_end
+    ):
+        return "overlap"
+
+    return "no_match"
+def get_cnv_evidence(record):
+    """
+    Build dbVar evidence for a normalized CNV.
+    """
+
+    gene = record.get("gene")
+
+    normalization = normalize_cnv(record)
+
+    if normalization["status"] != "success":
+        return normalization
+
+    chromosome = normalization["chromosome"]
+    start = normalization["start"]
+    end = normalization["end"]
+
+    print("\nRunning dbVar...")
 
     ids = search_dbvar_cnv(
         gene,
@@ -645,25 +700,53 @@ def get_cnv_evidence(record):
         f"dbVar candidates found: {len(ids)}"
     )
 
-    candidates = get_dbvar_summaries(
-        ids
-    )
+    candidates = get_dbvar_summaries(ids)
+    for candidate in candidates:
+
+        for placement in candidate.get(
+            "placements",
+            []
+        ):
+
+            if placement.get("assembly") != "GRCh38.p12":
+                continue
+
+            candidate_start = placement.get(
+                "chr_start"
+            )
+
+            candidate_end = placement.get(
+                "chr_end"
+            )
+
+            if (
+                candidate_start is None
+                or candidate_end is None
+            ):
+                continue
+
+            candidate["match_status"] = (
+                classify_cnv_match(
+                    start,
+                    end,
+                    candidate_start,
+                    candidate_end
+                )
+            )
+
+            break
 
     return {
-
         "status": "success",
-
         "source_variant": record,
-
+        "normalization": normalization,
         "search_region": {
             "chromosome": chromosome,
             "start": start,
             "end": end
         },
-
         "dbvar_candidates": candidates
     }
-
 def normalize_snv(record):
     """
     Resolve an SNV into a transcript-level and genomic representation.

@@ -8,8 +8,19 @@ from .pdf_extractor import extract_text_from_pdf
 # ==========================================
 
 def extract_snv_variants(text):
+    """
+    Extract SNV cDNA changes such as:
+
+        c.3559C>T
+        c.123A>G
+    """
+
     pattern = r'\bc\.\d+[ACGT]>[ACGT]\b'
-    return re.findall(pattern, text)
+
+    return re.findall(
+        pattern,
+        text
+    )
 
 
 # ==========================================
@@ -17,8 +28,28 @@ def extract_snv_variants(text):
 # ==========================================
 
 def extract_cnv_variants(text):
-    pattern = r'chr17:g\.\([^)]*\)\s*_\s*\([^)]*\)del'
-    return re.findall(pattern, text)
+    """
+    Extract genomic CNV notations such as:
+
+        chr17:g.(81936194_81936747)_(81937239_?)del
+        chr1:g.(100000_100500)_(101000_?)dup
+
+    Supports chromosomes 1-22, X, and Y,
+    and both deletion (del) and duplication (dup).
+    """
+
+    pattern = (
+        r'chr(?:[0-9]+|X|Y):g\.'
+        r'\([^)]*\)'
+        r'\s*_\s*'
+        r'\([^)]*\)'
+        r'(?:del|dup)'
+    )
+
+    return re.findall(
+        pattern,
+        text
+    )
 
 
 # ==========================================
@@ -26,6 +57,23 @@ def extract_cnv_variants(text):
 # ==========================================
 
 def extract_variant_records(text):
+    """
+    Convert extracted variants into structured records.
+
+    Example output:
+
+        {
+            "gene": "COL2A1",
+            "variant": "c.3559C>T",
+            "type": "SNV"
+        }
+
+        {
+            "gene": "PYCR1",
+            "variant": "chr17:g.(81936194_81936747)_(81937239_?)del",
+            "type": "CNV"
+        }
+    """
 
     records = []
 
@@ -35,11 +83,18 @@ def extract_variant_records(text):
 
     snv_pattern = r'\bc\.\d+[ACGT]>[ACGT]\b'
 
-    for match in re.finditer(snv_pattern, text):
+    for match in re.finditer(
+        snv_pattern,
+        text
+    ):
 
         variant = match.group()
 
-        # Look further back because the report has:
+        # ----------------------------------
+        # Look backward for context
+        # ----------------------------------
+
+        # Current report structure is approximately:
         #
         # COL2A1 (-)
         # (ENST00000380518.8)
@@ -56,13 +111,19 @@ def extract_variant_records(text):
             match.start()
         ]
 
-        # Find gene names
+        # ----------------------------------
+        # Find gene
+        # ----------------------------------
+
         gene_matches = re.findall(
             r'\b[A-Z0-9]{2,15}\b\s*\(-\)',
             context
         )
 
+        # ----------------------------------
         # Find Ensembl transcript
+        # ----------------------------------
+
         transcript_matches = re.findall(
             r'ENST\d+(?:\.\d+)?',
             context
@@ -79,19 +140,29 @@ def extract_variant_records(text):
             }
 
             if transcript_matches:
+
                 record["transcript"] = (
                     transcript_matches[-1]
                 )
 
-            records.append(record)
-
+            records.append(
+                record
+            )
 
     # ======================================
     # CNVs
     # ======================================
 
+        # ======================================
+    # CNVs
+    # ======================================
+
     cnv_pattern = (
-        r'chr17:g\.\([^)]*\)\s*_\s*\([^)]*\)del'
+        r'chr(?:[0-9]+|X|Y):g\.'
+        r'\([^)]*\)'
+        r'\s*_\s*'
+        r'\([^)]*\)'
+        r'(?:del|dup)'
     )
 
     for match in re.finditer(
@@ -101,25 +172,43 @@ def extract_variant_records(text):
 
         variant = match.group()
 
-        window_start = max(
+        # Look around the CNV to find the associated gene.
+        # The current report contains text like:
+        #
+        # "... comprising exons 1 to 2 of the PYCR1 gene ..."
+        #
+        # so search a wider context around the variant.
+
+        context_start = max(
             0,
-            match.start() - 250
+            match.start() - 500
         )
 
-        window_end = min(
+        context_end = min(
             len(text),
-            match.end() + 250
+            match.end() + 500
         )
 
         context = text[
-            window_start:
-            window_end
+            context_start:
+            context_end
         ]
 
-        if re.search(r'\bPYCR1\b', context):
+        # ----------------------------------
+        # Find "<GENE> gene"
+        # ----------------------------------
+
+        gene_matches = re.findall(
+            r'\b([A-Z0-9]{2,15})\s+gene\b',
+            context
+        )
+
+        if gene_matches:
+
+            gene = gene_matches[-1]
 
             records.append({
-                "gene": "PYCR1",
+                "gene": gene,
                 "variant": variant,
                 "type": "CNV"
             })
@@ -135,23 +224,50 @@ if __name__ == "__main__":
 
     pdf_path = "medgenome_report.pdf"
 
+    # --------------------------------------
+    # Extract PDF text
+    # --------------------------------------
+
     text = extract_text_from_pdf(
         pdf_path
     )
 
+    # --------------------------------------
+    # SNVs
+    # --------------------------------------
+
     print("\nSNV variants:")
+
     print(
-        extract_snv_variants(text)
+        extract_snv_variants(
+            text
+        )
     )
 
+    # --------------------------------------
+    # CNVs
+    # --------------------------------------
+
     print("\nCNV variants:")
+
     print(
-        extract_cnv_variants(text)
+        extract_cnv_variants(
+            text
+        )
     )
+
+    # --------------------------------------
+    # Structured records
+    # --------------------------------------
 
     print("\nVariant records:")
 
-    records = extract_variant_records(text)
+    records = extract_variant_records(
+        text
+    )
 
     for record in records:
-        print(record)
+
+        print(
+            record
+        )
