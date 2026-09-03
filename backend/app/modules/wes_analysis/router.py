@@ -8,6 +8,7 @@ from app.core.database.session import get_db
 from app.modules.patient.model import Patient
 from app.modules.wes_analysis.model import WESReport
 from app.modules.wes_analysis.pipeline import analyze_wes_report
+from sqlalchemy import text
 
 
 router = APIRouter(
@@ -25,7 +26,7 @@ def ping():
 def db_test(db: Session = Depends(get_db)):
     return {
         "database": "connected",
-        "result": db.execute("SELECT 1").scalar(),
+        "result": db.execute(text("SELECT 1")).scalar(),
     }
 
 
