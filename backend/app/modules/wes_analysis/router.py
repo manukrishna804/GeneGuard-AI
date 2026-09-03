@@ -2,13 +2,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database.session import get_db
 from app.modules.patient.model import Patient
 from app.modules.wes_analysis.model import WESReport
 from app.modules.wes_analysis.pipeline import analyze_wes_report
-
 
 router = APIRouter(
     prefix="/wes",
@@ -25,7 +25,7 @@ def ping():
 def db_test(db: Session = Depends(get_db)):
     return {
         "database": "connected",
-        "result": db.execute("SELECT 1").scalar(),
+        "result": db.execute(text("SELECT 1")).scalar(),
     }
 
 
