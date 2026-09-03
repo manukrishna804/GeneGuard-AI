@@ -821,6 +821,10 @@ def classify_cnv_match(
 def get_cnv_evidence(record):
     """
     Build dbVar evidence for a normalized CNV.
+
+    Candidates are matched by:
+    1. GRCh38 placement coordinates
+    2. Structural variant type relevance
     """
 
     gene = record.get("gene")
@@ -833,6 +837,7 @@ def get_cnv_evidence(record):
     chromosome = normalization["chromosome"]
     start = normalization["start"]
     end = normalization["end"]
+    variant_type = normalization["variant_type"]
 
     print("\nRunning dbVar...")
 
@@ -848,23 +853,21 @@ def get_cnv_evidence(record):
     )
 
     candidates = get_dbvar_summaries(ids)
+
+    relevant_candidates = []
+
     for candidate in candidates:
 
-        for placement in candidate.get(
-            "placements",
-            []
-        ):
+        # Check coordinate match on GRCh38
+        coordinate_match = "no_match"
+
+        for placement in candidate.get("placements", []):
 
             if placement.get("assembly") != "GRCh38.p12":
                 continue
 
-            candidate_start = placement.get(
-                "chr_start"
-            )
-
-            candidate_end = placement.get(
-                "chr_end"
-            )
+            candidate_start = placement.get("chr_start")
+            candidate_end = placement.get("chr_end")
 
             if (
                 candidate_start is None
@@ -872,16 +875,54 @@ def get_cnv_evidence(record):
             ):
                 continue
 
-            candidate["match_status"] = (
-                classify_cnv_match(
-                    start,
-                    end,
-                    candidate_start,
-                    candidate_end
-                )
+            coordinate_match = classify_cnv_match(
+                start,
+                end,
+                candidate_start,
+                candidate_end
             )
 
             break
+
+        if coordinate_match == "no_match":
+            continue
+
+        # Check whether the dbVar record is structurally relevant
+        dbvar_types = [
+            str(value).lower()
+            for value in candidate.get("variant_type", [])
+        ]
+
+        if variant_type == "del":
+            type_relevant = any(
+                value in dbvar_types
+                for value in [
+                    "copy number variation",
+                    "deletion",
+                    "copy number loss",
+                ]
+            )
+        elif variant_type == "dup":
+            type_relevant = any(
+                value in dbvar_types
+                for value in [
+                    "copy number variation",
+                    "duplication",
+                    "copy number gain",
+                ]
+            )
+        else:
+            type_relevant = True
+
+        candidate["coordinate_match_status"] = coordinate_match
+        candidate["type_relevant"] = type_relevant
+
+        if type_relevant:
+            candidate["match_status"] = coordinate_match
+        else:
+            candidate["match_status"] = "type_mismatch"
+
+        relevant_candidates.append(candidate)
 
     return {
         "status": "success",
@@ -892,7 +933,7 @@ def get_cnv_evidence(record):
             "start": start,
             "end": end
         },
-        "dbvar_candidates": candidates
+        "dbvar_candidates": relevant_candidates
     }
 def resolve_snv_transcript(gene, variant):
     gene_variant = f"{gene}:{variant}"

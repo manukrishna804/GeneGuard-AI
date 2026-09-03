@@ -201,6 +201,10 @@ def combine_evidence(
         candidate_match_status = "not_found"
 
         for candidate in candidates:
+
+            if candidate.get("type_relevant") is not True:
+                continue
+
             status = candidate.get("match_status")
 
             if status == "exact":
