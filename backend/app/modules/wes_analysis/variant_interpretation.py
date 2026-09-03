@@ -1,3 +1,4 @@
+from .interpretation_config import SNV_THRESHOLDS
 def interpret_variant(
     variant_record,
     combined_evidence
@@ -26,6 +27,10 @@ def interpret_variant(
     # SNV
     # ========================================================
 
+        # ========================================================
+    # SNV
+    # ========================================================
+
     if variant_type == "SNV":
 
         identity = combined_evidence.get(
@@ -40,6 +45,16 @@ def interpret_variant(
 
         consequence = evidence.get(
             "consequence",
+            {}
+        )
+
+        predictions = evidence.get(
+            "computational_predictions",
+            {}
+        )
+
+        sources = evidence.get(
+            "sources",
             {}
         )
 
@@ -60,24 +75,120 @@ def interpret_variant(
 
         interpretation["evidence_summary"] = {
             "consequence": consequence,
-            "computational_predictions": evidence.get(
-                "computational_predictions",
-                {}
-            ),
+            "computational_predictions": predictions,
             "conservation": evidence.get(
                 "conservation",
                 {}
             ),
-            "sources": evidence.get(
-                "sources",
-                {}
-            )
+            "sources": sources
         }
 
+        # ----------------------------------------------------
+        # Evidence counters
+        # ----------------------------------------------------
+
+        supporting = []
+        conflicting = []
+
+        # Consequence
+        effect = consequence.get("effect")
+
+        if effect == "missense_variant":
+            supporting.append(
+                "Variant is a missense change."
+            )
+
+        # CADD
+        cadd = predictions.get("cadd")
+
+        if isinstance(cadd, (int, float)):
+            if cadd >= SNV_THRESHOLDS["cadd_high"]:
+                supporting.append(
+                    f"CADD score is {cadd}, which is above "
+                    "the configured high-impact threshold."
+                )
+
+        # REVEL
+        revel_values = predictions.get(
+            "revel",
+            []
+        )
+
+        if revel_values:
+            numeric_revel = [
+                value
+                for value in revel_values
+                if isinstance(value, (int, float))
+            ]
+
+            if numeric_revel:
+                max_revel = max(numeric_revel)
+
+                if max_revel >= SNV_THRESHOLDS["revel_damaging"]:
+                    supporting.append(
+                        f"REVEL score is {max_revel}, "
+                        "supporting a damaging prediction."
+                    )
+
+        # SIFT
+        sift_values = predictions.get(
+            "sift",
+            []
+        )
+
+        if any(
+            str(value).upper() == "D"
+            for value in sift_values
+        ):
+            supporting.append(
+                "SIFT contains a damaging prediction."
+            )
+
+        # PolyPhen
+        polyphen = predictions.get(
+            "polyphen",
+            {}
+        )
+
+        if any(
+            str(value).upper() == "D"
+            for prediction_set in polyphen.values()
+            for value in prediction_set
+        ):
+            supporting.append(
+                "PolyPhen contains a damaging prediction."
+            )
+
+        # Source validation
+        variantvalidator_status = sources.get(
+            "variantvalidator",
+            {}
+        ).get("status")
+
+        if variantvalidator_status == "validated":
+            supporting.append(
+                "VariantValidator successfully validated "
+                "the normalized variant."
+            )
+
+        # ----------------------------------------------------
+        # Current interpretation policy
+        # ----------------------------------------------------
+
+        interpretation["reasoning"] = supporting
+
+        # IMPORTANT:
+        # Evidence collected here is not sufficient by itself
+        # to assign a clinical ACMG/AMP classification.
+
+        if supporting:
+            interpretation["classification"] = "VUS"
+            interpretation["confidence"] = "low"
+
         interpretation["reasoning"].append(
-            "Variant evidence has been collected, "
-            "but clinical classification rules have not "
-            "yet been applied."
+            "Current SNV engine does not assign a clinical "
+            "Pathogenic/Likely Pathogenic/Benign classification "
+            "from computational evidence alone."
         )
 
     # ========================================================
