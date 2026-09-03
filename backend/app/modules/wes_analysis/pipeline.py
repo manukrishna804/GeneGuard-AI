@@ -5,6 +5,7 @@ from .variant_extractor import extract_variant_records
 from .variant_validator import validate_variant
 from .variant_evidence import get_variant_evidence
 from .evidence_combiner import combine_evidence
+from .variant_interpretation import interpret_variant
 
 
 # ============================================================
@@ -64,6 +65,12 @@ def analyze_wes_report(pdf_path):
             validation_result=validation,
             evidence_result=evidence
         )
+
+        interpretation = interpret_variant(
+            variant_record=record,
+            combined_evidence=combined
+        )
+        combined["interpretation"] = interpretation
 
         results.append(combined)
 
