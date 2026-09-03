@@ -520,6 +520,8 @@ def get_snv_evidence(record):
         VariantValidator
           ↓
         MyVariant.info
+          ↓
+        ClinGen Allele Registry
     """
 
     # --------------------------------------------------------
@@ -535,16 +537,14 @@ def get_snv_evidence(record):
             "normalization": normalization,
         }
 
-    transcript_hgvs = normalization.get(
-        "transcript_hgvs"
-    )
+    transcript_hgvs = normalization.get("transcript_hgvs")
 
     if not transcript_hgvs:
         return {
             "status": "normalization_failed",
             "source_variant": record,
             "normalization": normalization,
-            "message": "Transcript HGVS is missing."
+            "message": "Transcript HGVS is missing.",
         }
 
     # --------------------------------------------------------
@@ -562,10 +562,6 @@ def get_snv_evidence(record):
         transcript_hgvs
     )
 
-    # --------------------------------------------------------
-    # Stop if VariantValidator did not validate
-    # --------------------------------------------------------
-
     if not validator.get("validated"):
         return {
             "status": "validation_failed",
@@ -578,13 +574,7 @@ def get_snv_evidence(record):
     # Get genomic representation
     # --------------------------------------------------------
 
-    genomic = validator.get(
-        "genomic"
-    )
-
-    vcf = validator.get(
-        "vcf"
-    )
+    vcf = validator.get("vcf")
 
     genomic_variant = None
 
@@ -608,20 +598,23 @@ def get_snv_evidence(record):
 
     myvariant = {
         "found": False,
-        "message": "Genomic representation unavailable."
+        "message": "Genomic representation unavailable.",
+    }
+
+    clingen = {
+        "status": "not_available",
     }
 
     if genomic_variant:
 
-        print(
-            "Running MyVariant.info..."
-        )
+        print("Running MyVariant.info...")
 
         myvariant_raw = lookup_myvariant(
             genomic_variant
         )
 
         if myvariant_raw.get("status") == "error":
+
             myvariant = {
                 "found": False,
                 "status": "unavailable",
@@ -632,11 +625,57 @@ def get_snv_evidence(record):
                     "message"
                 ),
             }
+
         else:
+
+            clingen_data = myvariant_raw.get(
+                "clingen",
+                {}
+            )
+
+            clingen_caid = clingen_data.get(
+                "caid"
+            )
+
             myvariant = extract_myvariant_evidence(
                 myvariant_raw,
                 record.get("variant")
             )
+
+            if clingen_caid:
+
+                clingen_result = lookup_clingen_allele(
+                    clingen_caid
+                )
+
+                if clingen_result.get("status") == "error":
+                    clingen = {
+                        "status": "unavailable",
+                        "caid": clingen_caid,
+                        "error_type": clingen_result.get(
+                            "error_type"
+                        ),
+                        "message": clingen_result.get(
+                            "message"
+                        ),
+                    }
+                else:
+                    clingen = {
+                        "status": "found",
+                        "caid": clingen_caid,
+                        "community_standard_title": (
+                            clingen_result.get(
+                                "communityStandardTitle",
+                                []
+                            )
+                        ),
+                        "external_records": (
+                            clingen_result.get(
+                                "externalRecords",
+                                {}
+                            )
+                        ),
+    }
 
     # --------------------------------------------------------
     # Final SNV evidence
@@ -648,8 +687,51 @@ def get_snv_evidence(record):
         "normalization": normalization,
         "variantvalidator": validator,
         "myvariant": myvariant,
+        "clingen": clingen,
+    }
+def search_clinvar_snv(hgvs):
+    """
+    Search ClinVar for a specific SNV HGVS expression.
+
+    Returns ClinVar Variation IDs matching the query.
+    """
+
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+
+    params = {
+        "db": "clinvar",
+        "term": f'"{hgvs}"',
+        "retmode": "json",
+        "retmax": 20,
     }
 
+    result = get_json(url, params=params)
+
+    if result.get("status") != "success":
+        return result
+
+    data = result["data"]
+
+    return data.get(
+        "esearchresult",
+        {}
+    ).get(
+        "idlist",
+        []
+    )
+def lookup_clingen_allele(caid):
+    """
+    Look up an allele using its ClinGen Allele ID.
+    """
+
+    url = f"https://reg.clinicalgenome.org/allele/{caid}"
+
+    result = get_json(url)
+
+    if result.get("status") != "success":
+        return result
+
+    return result["data"]
 def get_dbvar_summaries(ids):
     """
     Retrieve summary information for dbVar IDs.

@@ -42,22 +42,21 @@ def interpret_variant(
             "evidence",
             {}
         )
+        clingen_caid = identity.get(
+            "clingen_caid"
+        )
 
         consequence = evidence.get(
-            "consequence",
-            {}
-        )
+            "consequence"
+        ) or {}
 
         predictions = evidence.get(
-            "computational_predictions",
-            {}
-        )
+            "computational_predictions"
+        ) or {}
 
         sources = evidence.get(
-            "sources",
-            {}
-        )
-
+            "sources"
+        ) or {}
         interpretation["identity"] = {
             "transcript": identity.get(
                 "transcript"
@@ -80,7 +79,11 @@ def interpret_variant(
                 "conservation",
                 {}
             ),
-            "sources": sources
+            "sources": sources,
+            "clingen": identity.get(
+                "clingen",
+                {}
+            )
         }
 
         # ----------------------------------------------------

@@ -55,6 +55,10 @@ def combine_evidence(
             "myvariant",
             {}
         )
+        clingen = evidence_result.get(
+            "clingen",
+            {}
+        )
 
         # --------------------------------------------
         # Identity / normalized representation
@@ -90,9 +94,7 @@ def combine_evidence(
                 "vcf"
             ),
 
-            "clingen_caid": myvariant.get(
-                "clingen_caid"
-            )
+            "clingen": clingen,
         }
 
         # --------------------------------------------
@@ -164,6 +166,12 @@ def combine_evidence(
                     "found"
                     if myvariant.get("found")
                     else "not_found"
+                )
+            },
+            "clingen": {
+                "status": clingen.get(
+                    "status",
+                    "not_available"
                 )
             }
         }
