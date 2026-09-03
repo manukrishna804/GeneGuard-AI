@@ -55,8 +55,14 @@ def combine_evidence(
             "myvariant",
             {}
         )
+
         clingen = evidence_result.get(
             "clingen",
+            {}
+        )
+
+        clinvar = evidence_result.get(
+            "clinvar",
             {}
         )
 
@@ -66,6 +72,7 @@ def combine_evidence(
 
         combined["identity"] = {
             "normalization": normalization,
+
             "input_hgvs": validator.get(
                 "input_hgvs"
             ),
@@ -94,7 +101,7 @@ def combine_evidence(
                 "vcf"
             ),
 
-            "clingen": clingen,
+            "clingen": clingen
         }
 
         # --------------------------------------------
@@ -133,9 +140,8 @@ def combine_evidence(
         combined["evidence"][
             "computational_predictions"
         ] = myvariant.get(
-            "computational_predictions",
-            {}
-        )
+            "computational_predictions"
+        ) or {}
 
         # --------------------------------------------
         # Conservation
@@ -144,15 +150,23 @@ def combine_evidence(
         combined["evidence"][
             "conservation"
         ] = myvariant.get(
-            "conservation",
-            {}
-        )
+            "conservation"
+        ) or {}
+
+        # --------------------------------------------
+        # ClinVar
+        # --------------------------------------------
+
+        combined["evidence"][
+            "clinvar"
+        ] = clinvar
 
         # --------------------------------------------
         # Source status
         # --------------------------------------------
 
         combined["evidence"]["sources"] = {
+
             "variantvalidator": {
                 "status": (
                     "validated"
@@ -168,8 +182,16 @@ def combine_evidence(
                     else "not_found"
                 )
             },
+
             "clingen": {
                 "status": clingen.get(
+                    "status",
+                    "not_available"
+                )
+            },
+
+            "clinvar": {
+                "status": clinvar.get(
                     "status",
                     "not_available"
                 )
@@ -186,10 +208,11 @@ def combine_evidence(
             "search_region",
             {}
         )
+
         normalization = evidence_result.get(
             "normalization",
             {}
-                )
+        )
 
         candidates = evidence_result.get(
             "dbvar_candidates",
@@ -210,10 +233,16 @@ def combine_evidence(
 
         for candidate in candidates:
 
-            if candidate.get("type_relevant") is not True:
+            # Ignore candidates whose structural
+            # variant type is not relevant.
+            if candidate.get(
+                "type_relevant"
+            ) is not True:
                 continue
 
-            status = candidate.get("match_status")
+            status = candidate.get(
+                "match_status"
+            )
 
             if status == "exact":
                 candidate_match_status = "exact"
@@ -228,7 +257,9 @@ def combine_evidence(
                 if candidates
                 else "not_found"
             ),
+
             "match_status": candidate_match_status,
+
             "candidates": candidates
         }
 
@@ -271,11 +302,11 @@ def combine_evidence(
 
 if __name__ == "__main__":
 
-    from pdf_extractor import extract_text_from_pdf
-    from variant_extractor import extract_variant_records
-    from variant_validator import validate_variant
-    from variant_evidence import get_variant_evidence
-
+    from .pdf_extractor import extract_text_from_pdf
+    from .variant_extractor import extract_variant_records
+    from .variant_validator import validate_variant
+    from .variant_evidence import get_variant_evidence
+    from .variant_interpretation import interpret_variant
 
     # --------------------------------------------------------
     # 1. EXTRACT PDF
@@ -291,7 +322,6 @@ if __name__ == "__main__":
         pdf_path
     )
 
-
     # --------------------------------------------------------
     # 2. EXTRACT VARIANTS
     # --------------------------------------------------------
@@ -303,7 +333,6 @@ if __name__ == "__main__":
     records = extract_variant_records(
         text
     )
-
 
     # --------------------------------------------------------
     # 3. PROCESS EACH VARIANT
@@ -353,6 +382,7 @@ if __name__ == "__main__":
                 "validation": validation,
 
                 "status": "invalid"
+
             })
 
             continue
@@ -376,12 +406,23 @@ if __name__ == "__main__":
             validation_result=validation,
 
             evidence_result=evidence
+
         )
+
+        # --------------------------------------------
+        # Interpretation
+        # --------------------------------------------
+
+        interpretation = interpret_variant(
+            variant_record=record,
+            combined_evidence=combined
+        )
+
+        combined["interpretation"] = interpretation
 
         final_results.append(
             combined
         )
-
 
     # --------------------------------------------------------
     # 4. PRINT FINAL RESULT

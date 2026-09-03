@@ -1,4 +1,6 @@
 from .interpretation_config import SNV_THRESHOLDS
+
+
 def interpret_variant(
     variant_record,
     combined_evidence
@@ -6,8 +8,10 @@ def interpret_variant(
     """
     Create a structured interpretation for a variant.
 
-    This function currently prepares the interpretation structure.
-    Clinical classification rules will be added in later steps.
+    Clinical classification is intentionally conservative.
+    The current engine summarizes available evidence but does
+    not assign a clinical Pathogenic/Likely Pathogenic/Benign
+    classification from computational evidence alone.
     """
 
     variant_type = variant_record.get("type")
@@ -27,24 +31,17 @@ def interpret_variant(
     # SNV
     # ========================================================
 
-        # ========================================================
-    # SNV
-    # ========================================================
-
     if variant_type == "SNV":
 
         identity = combined_evidence.get(
             "identity",
             {}
-        )
+        ) or {}
 
         evidence = combined_evidence.get(
             "evidence",
             {}
-        )
-        clingen_caid = identity.get(
-            "clingen_caid"
-        )
+        ) or {}
 
         consequence = evidence.get(
             "consequence"
@@ -54,9 +51,29 @@ def interpret_variant(
             "computational_predictions"
         ) or {}
 
+        conservation = evidence.get(
+            "conservation"
+        ) or {}
+
         sources = evidence.get(
             "sources"
         ) or {}
+
+        clingen = identity.get(
+            "clingen"
+        ) or {}
+
+        clinvar = evidence.get(
+            "clinvar"
+        ) or {
+            "status": "not_available",
+            "records": []
+        }
+
+        # --------------------------------------------
+        # Identity
+        # --------------------------------------------
+
         interpretation["identity"] = {
             "transcript": identity.get(
                 "transcript"
@@ -67,34 +84,33 @@ def interpret_variant(
             "genomic": identity.get(
                 "genomic"
             ),
-            "clingen_caid": identity.get(
-                "clingen_caid"
+            "clingen_caid": clingen.get(
+                "caid"
             )
         }
+
+        # --------------------------------------------
+        # Evidence summary
+        # --------------------------------------------
 
         interpretation["evidence_summary"] = {
             "consequence": consequence,
             "computational_predictions": predictions,
-            "conservation": evidence.get(
-                "conservation",
-                {}
-            ),
-            "sources": sources,
-            "clingen": identity.get(
-                "clingen",
-                {}
-            )
+            "conservation": conservation,
+            "clingen": clingen,
+            "clinvar": clinvar,
+            "sources": sources
         }
 
-        # ----------------------------------------------------
-        # Evidence counters
-        # ----------------------------------------------------
+        # --------------------------------------------
+        # Evidence reasoning
+        # --------------------------------------------
 
         supporting = []
-        conflicting = []
 
-        # Consequence
-        effect = consequence.get("effect")
+        effect = consequence.get(
+            "effect"
+        )
 
         if effect == "missense_variant":
             supporting.append(
@@ -102,10 +118,15 @@ def interpret_variant(
             )
 
         # CADD
-        cadd = predictions.get("cadd")
+        cadd = predictions.get(
+            "cadd"
+        )
 
         if isinstance(cadd, (int, float)):
-            if cadd >= SNV_THRESHOLDS["cadd_high"]:
+
+            if cadd >= SNV_THRESHOLDS[
+                "cadd_high"
+            ]:
                 supporting.append(
                     f"CADD score is {cadd}, which is above "
                     "the configured high-impact threshold."
@@ -115,29 +136,33 @@ def interpret_variant(
         revel_values = predictions.get(
             "revel",
             []
-        )
+        ) or []
 
-        if revel_values:
-            numeric_revel = [
-                value
-                for value in revel_values
-                if isinstance(value, (int, float))
-            ]
+        numeric_revel = [
+            value
+            for value in revel_values
+            if isinstance(value, (int, float))
+        ]
 
-            if numeric_revel:
-                max_revel = max(numeric_revel)
+        if numeric_revel:
 
-                if max_revel >= SNV_THRESHOLDS["revel_damaging"]:
-                    supporting.append(
-                        f"REVEL score is {max_revel}, "
-                        "supporting a damaging prediction."
-                    )
+            max_revel = max(
+                numeric_revel
+            )
+
+            if max_revel >= SNV_THRESHOLDS[
+                "revel_damaging"
+            ]:
+                supporting.append(
+                    f"REVEL score is {max_revel}, "
+                    "supporting a damaging prediction."
+                )
 
         # SIFT
         sift_values = predictions.get(
             "sift",
             []
-        )
+        ) or []
 
         if any(
             str(value).upper() == "D"
@@ -151,42 +176,56 @@ def interpret_variant(
         polyphen = predictions.get(
             "polyphen",
             {}
-        )
+        ) or {}
 
         if any(
             str(value).upper() == "D"
             for prediction_set in polyphen.values()
+            if isinstance(prediction_set, list)
             for value in prediction_set
         ):
             supporting.append(
                 "PolyPhen contains a damaging prediction."
             )
 
-        # Source validation
-        variantvalidator_status = sources.get(
-            "variantvalidator",
-            {}
-        ).get("status")
-
-        if variantvalidator_status == "validated":
+        # VariantValidator
+        if (
+            sources.get(
+                "variantvalidator",
+                {}
+            ).get("status")
+            == "validated"
+        ):
             supporting.append(
                 "VariantValidator successfully validated "
                 "the normalized variant."
             )
 
-        # ----------------------------------------------------
-        # Current interpretation policy
-        # ----------------------------------------------------
+        # ClinGen
+        if clingen.get(
+            "status"
+        ) == "found":
+            supporting.append(
+                "ClinGen Allele Registry returned a "
+                "matching allele identity."
+            )
+
+        # ClinVar
+        if clinvar.get(
+            "status"
+        ) == "found":
+            supporting.append(
+                "ClinVar records were found for the variant."
+            )
 
         interpretation["reasoning"] = supporting
 
-        # IMPORTANT:
-        # Evidence collected here is not sufficient by itself
-        # to assign a clinical ACMG/AMP classification.
+        # --------------------------------------------
+        # Current classification policy
+        # --------------------------------------------
 
-        if supporting:
-            interpretation["classification"] = "VUS"
-            interpretation["confidence"] = "low"
+        interpretation["classification"] = "VUS"
+        interpretation["confidence"] = "low"
 
         interpretation["reasoning"].append(
             "Current SNV engine does not assign a clinical "
@@ -203,17 +242,25 @@ def interpret_variant(
         identity = combined_evidence.get(
             "identity",
             {}
-        )
+        ) or {}
 
         evidence = combined_evidence.get(
             "evidence",
             {}
-        )
+        ) or {}
 
         dbvar = evidence.get(
             "dbvar",
             {}
-        )
+        ) or {}
+
+        sources = evidence.get(
+            "sources"
+        ) or {}
+
+        # --------------------------------------------
+        # Identity
+        # --------------------------------------------
 
         interpretation["identity"] = {
             "normalization": identity.get(
@@ -227,6 +274,10 @@ def interpret_variant(
             )
         }
 
+        # --------------------------------------------
+        # Evidence summary
+        # --------------------------------------------
+
         interpretation["evidence_summary"] = {
             "dbvar_match_status": dbvar.get(
                 "match_status"
@@ -235,17 +286,56 @@ def interpret_variant(
                 "candidates",
                 []
             ),
-            "sources": evidence.get(
-                "sources",
-                {}
-            )
+            "sources": sources
         }
 
-        interpretation["reasoning"].append(
-            "CNV evidence has been collected, "
-            "but clinical classification rules have not "
-            "yet been applied."
+        # --------------------------------------------
+        # Evidence reasoning
+        # --------------------------------------------
+
+        match_status = dbvar.get(
+            "match_status"
         )
+
+        if match_status == "exact":
+            interpretation["reasoning"].append(
+                "A type-relevant dbVar candidate has an "
+                "exact coordinate match."
+            )
+
+        elif match_status == "overlap":
+            interpretation["reasoning"].append(
+                "A type-relevant dbVar candidate overlaps "
+                "the reported CNV coordinates."
+            )
+
+        elif match_status == "not_found":
+            interpretation["reasoning"].append(
+                "No type-relevant dbVar candidate was found."
+            )
+
+        else:
+            interpretation["reasoning"].append(
+                "CNV evidence has been collected, but no "
+                "specific coordinate classification was established."
+            )
+
+        interpretation["reasoning"].append(
+            "Current CNV engine does not assign a clinical "
+            "Pathogenic/Likely Pathogenic/Benign classification "
+            "from dbVar coordinate evidence alone."
+        )
+
+        # --------------------------------------------
+        # Current classification policy
+        # --------------------------------------------
+
+        interpretation["classification"] = "VUS"
+        interpretation["confidence"] = "low"
+
+    # ========================================================
+    # UNKNOWN TYPE
+    # ========================================================
 
     else:
 

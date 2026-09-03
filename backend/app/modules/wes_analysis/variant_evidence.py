@@ -676,7 +676,27 @@ def get_snv_evidence(record):
                             )
                         ),
     }
+        # --------------------------------------------------------
+    # ClinVar
+    # --------------------------------------------------------
 
+    clinvar = {
+        "status": "not_found",
+        "records": []
+    }
+
+    if genomic_variant and isinstance(vcf, dict):
+
+        clinvar_ids = search_clinvar_by_genomic_variant(
+            vcf.get("chromosome"),
+            vcf.get("position"),
+            vcf.get("reference"),
+            vcf.get("alternate")
+        )
+
+        clinvar = get_clinvar_evidence(
+            clinvar_ids
+        )
     # --------------------------------------------------------
     # Final SNV evidence
     # --------------------------------------------------------
@@ -688,7 +708,10 @@ def get_snv_evidence(record):
         "variantvalidator": validator,
         "myvariant": myvariant,
         "clingen": clingen,
+        "clinvar": clinvar,
     }
+
+
 def search_clinvar_snv(hgvs):
     """
     Search ClinVar for a specific SNV HGVS expression.
@@ -1237,7 +1260,177 @@ def get_variant_evidence(record):
         )
     }
 
+def get_clinvar_summaries(ids):
+    """
+    Retrieve ClinVar summaries for a list of ClinVar IDs.
+    """
 
+    if not ids:
+        return []
+
+    url = (
+        "https://eutils.ncbi.nlm.nih.gov/"
+        "entrez/eutils/esummary.fcgi"
+    )
+
+    params = {
+        "db": "clinvar",
+        "id": ",".join(str(value) for value in ids),
+        "retmode": "json",
+    }
+
+    result = get_json(
+        url,
+        params=params
+    )
+
+    if result.get("status") != "success":
+        return result
+
+    data = result["data"]
+
+    return data.get(
+        "result",
+        {}
+    )
+
+def extract_clinvar_evidence(data):
+    """
+    Extract the useful clinical assertion fields from one ClinVar summary.
+    """
+
+    if not isinstance(data, dict):
+            return {
+            "status": "invalid"
+        }
+
+    return {
+        "status": "found",
+        "clinvar_id": data.get("uid"),
+        "accession": data.get("accession"),
+        "accession_version": data.get(
+            "accession_version"
+        ),
+        "title": data.get("title"),
+        "germline_classification": data.get(
+            "germline_classification",
+            {}
+        ),
+        "clinical_impact_classification": data.get(
+            "clinical_impact_classification",
+            {}
+        ),
+        "oncogenicity_classification": data.get(
+            "oncogenicity_classification",
+            {}
+        ),
+        "traits": data.get(
+            "germline_classification",
+            {}
+        ).get(
+            "trait_set",
+            []
+        ),
+        "molecular_consequences": data.get(
+            "molecular_consequence_list",
+            []
+        )
+    }
+    
+def search_clinvar_by_genomic_variant(chromosome, position, reference, alternate):
+    """
+    Search ClinVar using a genomic variant representation.
+    """
+
+    url = (
+        "https://eutils.ncbi.nlm.nih.gov/"
+        "entrez/eutils/esearch.fcgi"
+    )
+
+    term = (
+        f"{chromosome}[Chromosome] AND "
+        f"{position}[Base Position] AND "
+        f"{reference}[All Fields] AND "
+        f"{alternate}[All Fields]"
+    )
+
+    params = {
+        "db": "clinvar",
+        "term": term,
+        "retmode": "json",
+        "retmax": 20,
+    }
+
+    result = get_json(
+        url,
+        params=params
+    )
+
+    if result.get("status") != "success":
+        return result
+
+    return result["data"].get(
+        "esearchresult",
+        {}
+    ).get(
+        "idlist",
+        []
+    )
+
+def get_clinvar_evidence(ids):
+    """
+    Build normalized ClinVar evidence from ClinVar IDs.
+    """
+
+    if isinstance(ids, dict) and ids.get("status") == "error":
+        return {
+            "status": "unavailable",
+            "error_type": ids.get("error_type"),
+            "message": ids.get("message"),
+            "records": [],
+        }
+
+    if not ids:
+        return {
+            "status": "not_found",
+            "records": [],
+        }
+
+    summaries = get_clinvar_summaries(ids)
+
+    if (
+        isinstance(summaries, dict)
+        and "status" in summaries
+        and summaries.get("status") == "error"
+    ):
+        return {
+            "status": "unavailable",
+            "error_type": summaries.get("error_type"),
+            "message": summaries.get("message"),
+            "records": [],
+        }
+
+    records = []
+
+    for clinvar_id in ids:
+        record = summaries.get(
+            str(clinvar_id)
+        )
+
+        if not isinstance(record, dict):
+            continue
+
+        if record.get("error"):
+            continue
+
+        records.append(
+            extract_clinvar_evidence(record)
+        )
+
+    return {
+        "status": "found" if records else "not_found",
+        "records": records,
+    }
 # ============================================================
 # TEST
 # ============================================================
