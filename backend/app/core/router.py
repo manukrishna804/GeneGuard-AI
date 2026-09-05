@@ -7,11 +7,13 @@ from app.modules.lifestyle.router import router as lifestyle_router
 from app.modules.consanguinity.router import router as consanguinity_router
 from app.modules.family_pedigree.router import router as family_pedigree_router
 from app.modules.report.router import router as report_router
+from app.modules.wes_analysis.prs.router import router as prs_router
 
 router = APIRouter()
 
 router.include_router(patient_router)
 router.include_router(wes_router)
+router.include_router(prs_router)
 router.include_router(phenotype_router)
 router.include_router(lifestyle_router)
 router.include_router(consanguinity_router)

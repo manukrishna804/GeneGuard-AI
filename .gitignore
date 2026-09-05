@@ -26,3 +26,12 @@ Thumbs.db
 
 # Docker
 postgres_data/
+# PRS downloaded scoring files
+backend/app/modules/wes_analysis/prs/models/*.txt.gz
+
+# PRS test datasets
+backend/app/modules/wes_analysis/prs/data/*.vcf
+backend/app/modules/wes_analysis/prs/data/*.vcf.gz
+backend/app/modules/wes_analysis/prs/data/*.vcf.gz.tbi
+backend/app/modules/wes_analysis/prs/data/*.tsv
+backend/app/modules/wes_analysis/prs/data/pgs_chr10_positions.txt

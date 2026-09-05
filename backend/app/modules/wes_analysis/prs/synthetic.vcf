@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##reference=GRCh37
+##source=GeneGuardAI-Synthetic
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	GENEGuard_SAMPLE
+10	100000625	.	A	G	.	PASS	.	GT	0/1
+10	100004906	.	A	C	.	PASS	.	GT	1/1
+10	100005282	.	C	T	.	PASS	.	GT	0/0
