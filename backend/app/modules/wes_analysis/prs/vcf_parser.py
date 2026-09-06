@@ -218,27 +218,22 @@ def parse_vcf(
     # ---------------------------------------------------------
 
     if requested_rsids:
+        requested_rsids_list = sorted(requested_rsids)
 
-        wsl_rsid_file = "/tmp/geneguard_prs_rsids.txt"
+        batch_size = 500
 
-        # Write RS IDs into WSL's Linux filesystem.
-        write_command = [
-            "wsl",
-            "bash",
-            "-lc",
-            f"cat > {wsl_rsid_file}",
-        ]
+        for batch_start in range(
+            0,
+            len(requested_rsids_list),
+            batch_size,
+        ):
+            batch = requested_rsids_list[
+                batch_start:batch_start + batch_size
+            ]
 
-        try:
-
-            subprocess.run(
-                write_command,
-                input="\n".join(
-                    sorted(requested_rsids)
-                ),
-                capture_output=True,
-                text=True,
-                check=True,
+            expression = " || ".join(
+                f'ID="{rsid}"'
+                for rsid in batch
             )
 
             command = [
@@ -250,53 +245,35 @@ def parse_vcf(
                 "-f",
                 format_string,
                 "-i",
-                " || ".join(
-                    f'ID="{rsid}"'
-                    for rsid in sorted(requested_rsids)
-                ),
+                expression,
                 vcf_wsl_path,
             ]
 
             result = _run_bcftools(command)
 
             for line in result.stdout.splitlines():
+                fields = line.split("\t")
 
-                if not line.strip():
+                if len(fields) < 6:
                     continue
 
-                columns = line.split("\t")
-
-                if len(columns) < 6:
-                    continue
+                chrom = fields[0]
+                pos = int(fields[1])
+                variant_id = fields[2]
+                ref = fields[3]
+                alt = fields[4]
+                genotype = fields[5]
 
                 variants.append(
                     {
-                        "chrom": columns[0],
-                        "pos": int(columns[1]),
-                        "id": columns[2],
-                        "ref": columns[3],
-                        "alt": columns[4],
-                        "genotype": columns[5],
+                        "chrom": chrom,
+                        "pos": pos,
+                        "id": variant_id,
+                        "ref": ref,
+                        "alt": alt,
+                        "genotype": genotype,
                     }
                 )
-
-        except subprocess.CalledProcessError as exc:
-            raise RuntimeError(
-                f"Could not prepare RS-ID list:\n{exc.stderr}"
-            ) from exc
-
-        finally:
-
-            subprocess.run(
-                [
-                    "wsl",
-                    "rm",
-                    "-f",
-                    wsl_rsid_file,
-                ],
-                capture_output=True,
-                text=True,
-            )
 
     variants.sort(
         key=lambda x: (

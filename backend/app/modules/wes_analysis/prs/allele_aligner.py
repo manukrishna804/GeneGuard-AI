@@ -5,8 +5,10 @@ def align_effect_allele(match: Dict) -> Dict:
     """
     Determine the effect-allele dosage from a matched VCF variant.
 
-    The PGS model defines:
+    The PGS model always provides:
         effect_allele
+
+    Some PGS files also provide:
         other_allele
 
     The VCF provides:
@@ -14,8 +16,24 @@ def align_effect_allele(match: Dict) -> Dict:
         ALT
         GT
 
-    For this first implementation, we require the VCF REF/ALT
-    to exactly match the PGS other/effect allele orientation.
+    Alignment rules:
+
+    1. If PGS other_allele is available:
+       REF == other_allele and ALT == effect_allele
+           -> ALIGNED
+
+       REF == effect_allele and ALT == other_allele
+           -> REVERSED
+
+    2. If PGS other_allele is unavailable:
+       ALT == effect_allele
+           -> ALIGNED
+
+       REF == effect_allele
+           -> REVERSED
+
+    Otherwise:
+        ALLELE_MISMATCH
     """
 
     vcf_variant = match.get("vcf_variant")
@@ -26,55 +44,59 @@ def align_effect_allele(match: Dict) -> Dict:
             "alignment_status": "NOT_FOUND",
         }
 
-    ref = vcf_variant["ref"].upper()
-    alt = vcf_variant["alt"].upper()
+    ref = str(
+        vcf_variant.get("ref", "")
+    ).upper()
 
-    effect = match["effect_allele"].upper()
-    other = match["other_allele"].upper()
+    alt = str(
+        vcf_variant.get("alt", "")
+    ).upper()
 
-    if ref == other and alt == effect:
-        alignment_status = "ALIGNED"
+    effect = str(
+        match.get("effect_allele", "")
+    ).upper()
 
-    elif ref == effect and alt == other:
-        alignment_status = "REVERSED"
+    other = str(
+        match.get("other_allele", "")
+    ).upper()
+
+    if not effect:
+        return {
+            **match,
+            "alignment_status": "ALLELE_MISMATCH",
+        }
+
+    # --------------------------------------------------
+    # Models with an explicit other allele
+    # --------------------------------------------------
+
+    if other:
+
+        if ref == other and alt == effect:
+            alignment_status = "ALIGNED"
+
+        elif ref == effect and alt == other:
+            alignment_status = "REVERSED"
+
+        else:
+            alignment_status = "ALLELE_MISMATCH"
+
+    # --------------------------------------------------
+    # RS-ID-only models without other_allele
+    # --------------------------------------------------
 
     else:
-        alignment_status = "ALLELE_MISMATCH"
+
+        if alt == effect:
+            alignment_status = "ALIGNED"
+
+        elif ref == effect:
+            alignment_status = "REVERSED"
+
+        else:
+            alignment_status = "ALLELE_MISMATCH"
 
     return {
         **match,
         "alignment_status": alignment_status,
     }
-
-
-if __name__ == "__main__":
-
-    from .vcf_parser import parse_vcf
-    from .pgs_model import load_pgs_model
-    from .variant_matcher import match_variants
-
-    vcf = parse_vcf(
-        "app/modules/wes_analysis/prs/synthetic.vcf"
-    )
-
-    pgs = load_pgs_model(
-        "app/modules/wes_analysis/prs/models/PGS005336.txt.gz",
-        max_variants=5,
-    )
-
-    matches = match_variants(
-        vcf,
-        pgs["variants"],
-    )
-
-    print("\nAllele alignment:")
-
-    for match in matches:
-        result = align_effect_allele(match)
-
-        print(
-            match["chrom"],
-            match["pos"],
-            "->",
-            result["alignment_status"],
-        )

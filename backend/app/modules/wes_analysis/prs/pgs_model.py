@@ -76,11 +76,25 @@ def load_pgs_model(
                 continue
 
             # Scoring header
+                        # Scoring header
             if header is None:
-                header = line.split("\t")
+                header = line.split()
                 continue
 
-            values = line.split("\t")
+            values = line.split()
+
+            # Some PGS files, such as CAD PGS000019,
+            # omit chr_position while keeping the column in the header.
+            if len(header) == 6 and len(values) == 5:
+                values = [
+                    values[0],  # rsID
+                    values[1],  # chr_name
+                    "",        # chr_position
+                    values[2],  # effect_allele
+                    values[3],  # effect_weight
+                    values[4],  # locus_name
+                ]
+
             record = dict(zip(header, values))
 
             chrom = str(record.get("chr_name", "")).strip()
@@ -115,10 +129,19 @@ def load_pgs_model(
             ):
                 break
 
-    return {
-        "metadata": metadata,
-        "variants": variants,
-    }
+        return {
+            "metadata": metadata,
+            "variants": variants,
+            "match_type": (
+                "rsid"
+                if all(
+                    variant.get("rsid")
+                    and variant.get("pos") is None
+                    for variant in variants
+                )
+                else "position"
+            ),
+        }
 
 
 if __name__ == "__main__":

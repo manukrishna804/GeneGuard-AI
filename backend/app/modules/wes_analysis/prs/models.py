@@ -9,7 +9,10 @@ class PRSScore(Base):
     id = Column(Integer, primary_key=True)
     sample_id = Column(String(100), nullable=False)
     disease = Column(String(100), nullable=False)
+    raw_prs = Column(Float, nullable=False)
     score_100 = Column(Float, nullable=False)
+    score_100_status = Column(String(50), nullable=False)
+    score_100_reference = Column(String(50), nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
