@@ -47,7 +47,8 @@ interface PRSQC {
 
 interface PRSResult {
   disease: string;
-  sample_id: string;
+  patient_id?: string;
+  vcf_sample_id?: string;
   pgs_id: string;
   model_name?: string;
   genome_build?: string;
@@ -62,17 +63,23 @@ interface PRSResult {
 }
 
 interface PRSResponse {
-  sample_id: string;
+  patient_id: string;
+  vcf_sample_id?: string;
   diseases_processed: number;
   results: PRSResult[];
 }
 
 function WESAnalysis() {
   // --------------------------------------------------
-  // WES state
+  // Common patient ID
   // --------------------------------------------------
 
   const [patientId, setPatientId] = useState("");
+
+  // --------------------------------------------------
+  // WES state
+  // --------------------------------------------------
+
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] =
@@ -84,8 +91,6 @@ function WESAnalysis() {
   // --------------------------------------------------
 
   const [prsVcf, setPrsVcf] =
-    useState<File | null>(null);
-  const [prsIndex, setPrsIndex] =
     useState<File | null>(null);
   const [prsLoading, setPrsLoading] =
     useState(false);
@@ -121,19 +126,6 @@ function WESAnalysis() {
   };
 
   // --------------------------------------------------
-  // PRS index handler
-  // --------------------------------------------------
-
-  const handlePrsIndexChange = (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedFile =
-      event.target.files?.[0] ?? null;
-
-    setPrsIndex(selectedFile);
-  };
-
-  // --------------------------------------------------
   // WES analysis
   // --------------------------------------------------
 
@@ -142,17 +134,23 @@ function WESAnalysis() {
     setResult(null);
 
     if (!patientId.trim()) {
-      setError("Please enter a patient ID.");
+      setError(
+        "Please enter a patient ID."
+      );
       return;
     }
 
     if (!file) {
-      setError("Please select a WES PDF.");
+      setError(
+        "Please select a WES PDF."
+      );
       return;
     }
 
     if (file.type !== "application/pdf") {
-      setError("Only PDF files are supported.");
+      setError(
+        "Only PDF files are supported."
+      );
       return;
     }
 
@@ -160,7 +158,7 @@ function WESAnalysis() {
 
     formData.append(
       "patient_id",
-      patientId
+      patientId.trim()
     );
 
     formData.append(
@@ -184,7 +182,7 @@ function WESAnalysis() {
       if (!response.ok) {
         throw new Error(
           data?.detail ||
-          "WES analysis failed."
+            "WES analysis failed."
         );
       }
 
@@ -201,7 +199,7 @@ function WESAnalysis() {
   };
 
   // --------------------------------------------------
-  // PRS analysis
+  // PRS calculation
   // --------------------------------------------------
 
   const calculatePRS = async () => {
@@ -222,13 +220,6 @@ function WESAnalysis() {
       return;
     }
 
-    if (!prsIndex) {
-      setPrsError(
-        "Please select the VCF index (.tbi)."
-      );
-      return;
-    }
-
     if (
       !prsVcf.name
         .toLowerCase()
@@ -240,32 +231,16 @@ function WESAnalysis() {
       return;
     }
 
-    if (
-      !prsIndex.name
-        .toLowerCase()
-        .endsWith(".tbi")
-    ) {
-      setPrsError(
-        "PRS requires a VCF index (.tbi)."
-      );
-      return;
-    }
-
     const formData = new FormData();
 
     formData.append(
-      "sample_id",
+      "patient_id",
       patientId.trim()
     );
 
     formData.append(
       "vcf",
       prsVcf
-    );
-
-    formData.append(
-      "vcf_index",
-      prsIndex
     );
 
     try {
@@ -284,7 +259,7 @@ function WESAnalysis() {
       if (!response.ok) {
         throw new Error(
           data?.detail ||
-          "PRS calculation failed."
+            "PRS calculation failed."
         );
       }
 
@@ -310,13 +285,14 @@ function WESAnalysis() {
 
         <header className="wes-header">
           <h1>GeneGuard-AI</h1>
+
           <p>
             WES Analysis &amp; Polygenic Risk Scoring
           </p>
         </header>
 
         {/* ==================================================
-            PATIENT INFORMATION
+            COMMON PATIENT INFORMATION
             ================================================== */}
 
         <section className="wes-upload-card">
@@ -393,14 +369,15 @@ function WESAnalysis() {
           </h2>
 
           <p>
-            Upload one compressed VCF and its
-            matching index file to calculate PRS
-            for all five configured diseases.
+            Upload the patient's compressed VCF
+            file. GeneGuard-AI automatically
+            handles the VCF index and calculates
+            PRS for all five configured diseases.
           </p>
 
           <div className="wes-field">
             <label htmlFor="prsVcf">
-              Genotype VCF (.vcf.gz)
+              Patient VCF (.vcf.gz)
             </label>
 
             <input
@@ -413,25 +390,6 @@ function WESAnalysis() {
             {prsVcf && (
               <p className="selected-file">
                 Selected: {prsVcf.name}
-              </p>
-            )}
-          </div>
-
-          <div className="wes-field">
-            <label htmlFor="prsIndex">
-              VCF Index (.tbi)
-            </label>
-
-            <input
-              id="prsIndex"
-              type="file"
-              accept=".tbi"
-              onChange={handlePrsIndexChange}
-            />
-
-            {prsIndex && (
-              <p className="selected-file">
-                Selected: {prsIndex.name}
               </p>
             )}
           </div>
@@ -467,7 +425,13 @@ function WESAnalysis() {
                 </h2>
 
                 <p>
-                  Report: {result.report_name}
+                  Patient ID:{" "}
+                  {result.patient_id}
+                </p>
+
+                <p>
+                  Report:{" "}
+                  {result.report_name}
                 </p>
               </div>
 
@@ -520,6 +484,7 @@ function WESAnalysis() {
                     {explanation?.summary && (
                       <div className="result-section">
                         <h4>Summary</h4>
+
                         <p>
                           {explanation.summary}
                         </p>
@@ -528,9 +493,14 @@ function WESAnalysis() {
 
                     {explanation?.what_was_found && (
                       <div className="result-section">
-                        <h4>What was found</h4>
+                        <h4>
+                          What was found
+                        </h4>
+
                         <p>
-                          {explanation.what_was_found}
+                          {
+                            explanation.what_was_found
+                          }
                         </p>
                       </div>
                     )}
@@ -538,6 +508,7 @@ function WESAnalysis() {
                     {explanation?.evidence_explanation && (
                       <div className="result-section">
                         <h4>Evidence</h4>
+
                         <p>
                           {
                             explanation.evidence_explanation
@@ -548,7 +519,10 @@ function WESAnalysis() {
 
                     {explanation?.classification_explanation && (
                       <div className="result-section">
-                        <h4>Classification</h4>
+                        <h4>
+                          Classification
+                        </h4>
+
                         <p>
                           {
                             explanation.classification_explanation
@@ -573,7 +547,7 @@ function WESAnalysis() {
 
                     {explanation?.limitations &&
                       explanation.limitations.length >
-                      0 && (
+                        0 && (
                         <div className="result-section">
                           <h4>
                             Limitations
@@ -617,9 +591,11 @@ function WESAnalysis() {
                 </h2>
 
                 <p>
-                  Sample:{" "}
-                  {prsResult.sample_id}
+                  Patient ID:{" "}
+                  {prsResult.patient_id}
                 </p>
+
+                
               </div>
 
               <div className="results-count">
@@ -634,16 +610,16 @@ function WESAnalysis() {
               const coveragePercent =
                 hasQc && prs.qc
                   ? (
-                    prs.qc.coverage * 100
-                  ).toFixed(1)
+                      prs.qc.coverage * 100
+                    ).toFixed(1)
                   : "N/A";
 
               const alignmentPercent =
                 hasQc && prs.qc
                   ? (
-                    prs.qc.alignment_rate *
-                    100
-                  ).toFixed(1)
+                      prs.qc.alignment_rate *
+                      100
+                    ).toFixed(1)
                   : "N/A";
 
               return (
@@ -651,6 +627,10 @@ function WESAnalysis() {
                   className="variant-card"
                   key={prs.disease}
                 >
+                  {/* ----------------------------------------
+                      PRS HEADER
+                      ---------------------------------------- */}
+
                   <div className="variant-top">
                     <div>
                       <h3>
@@ -674,9 +654,9 @@ function WESAnalysis() {
                     </div>
                   </div>
 
-                  {/* ------------------------------------------
-                      ERROR RESULT
-                      ------------------------------------------ */}
+                  {/* ----------------------------------------
+                      ERROR
+                      ---------------------------------------- */}
 
                   {prs.status === "ERROR" ? (
                     <div className="wes-error">
@@ -685,12 +665,14 @@ function WESAnalysis() {
                     </div>
                   ) : (
                     <>
-                      {/* ----------------------------------------
+                      {/* --------------------------------------
                           RAW PRS
-                          ---------------------------------------- */}
+                          -------------------------------------- */}
 
                       <div className="result-section">
-                        <h4>Raw PRS</h4>
+                        <h4>
+                          Raw PRS
+                        </h4>
 
                         <p>
                           {prs.prs !== undefined
@@ -699,17 +681,19 @@ function WESAnalysis() {
                         </p>
                       </div>
 
-                      {/* ----------------------------------------
+                      {/* --------------------------------------
                           SCORE 100
-                          ---------------------------------------- */}
+                          -------------------------------------- */}
 
                       <div className="result-section">
-                        <h4>Score 100</h4>
+                        <h4>
+                          Score 100
+                        </h4>
 
                         <p>
                           {prs.score_100 !==
                             null &&
-                            prs.score_100 !==
+                          prs.score_100 !==
                             undefined
                             ? prs.score_100
                             : "Not available"}
@@ -728,12 +712,14 @@ function WESAnalysis() {
                         </p>
                       </div>
 
-                      {/* ----------------------------------------
+                      {/* --------------------------------------
                           MODEL
-                          ---------------------------------------- */}
+                          -------------------------------------- */}
 
                       <div className="result-section">
-                        <h4>Model</h4>
+                        <h4>
+                          Model
+                        </h4>
 
                         <p>
                           PGS ID:{" "}
@@ -747,9 +733,9 @@ function WESAnalysis() {
                         </p>
                       </div>
 
-                      {/* ----------------------------------------
+                      {/* --------------------------------------
                           QC
-                          ---------------------------------------- */}
+                          -------------------------------------- */}
 
                       {hasQc && prs.qc && (
                         <div className="result-section">
@@ -803,29 +789,29 @@ function WESAnalysis() {
                         </div>
                       )}
 
-                      {/* ----------------------------------------
+                      {/* --------------------------------------
                           DEVELOPMENT NOTICE
-                          ---------------------------------------- */}
+                          -------------------------------------- */}
 
                       {prs.score_100_status ===
                         "DEVELOPMENT_ONLY" && (
-                          <div className="patient-friendly">
-                            <h4>
-                              Development notice
-                            </h4>
+                        <div className="patient-friendly">
+                          <h4>
+                            Development notice
+                          </h4>
 
-                            <p>
-                              The normalized 0–100
-                              score currently uses
-                              synthetic reference data
-                              and is for
-                              development/testing
-                              only. The raw PRS and
-                              QC values above are the
-                              calculated outputs.
-                            </p>
-                          </div>
-                        )}
+                          <p>
+                            The normalized 0–100
+                            score currently uses
+                            synthetic reference
+                            data and is for
+                            development/testing
+                            only. The raw PRS and
+                            QC values above are the
+                            calculated outputs.
+                          </p>
+                        </div>
+                      )}
                     </>
                   )}
                 </article>

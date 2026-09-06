@@ -235,13 +235,8 @@ def run_prs_pipeline(
 
     return {
         "disease": disease,
-        "sample_id": sample_id,
-        "pgs_id": pgs_result[
-            "metadata"
-        ].get("pgs_id"),
-        "model_name": pgs_result[
-            "metadata"
-        ].get("pgs_name"),
+        "pgs_id": pgs_result["metadata"].get("pgs_id"),
+        "model_name": pgs_result["metadata"].get("pgs_name"),
         "genome_build": pgs_result[
             "metadata"
         ].get("genome_build"),
