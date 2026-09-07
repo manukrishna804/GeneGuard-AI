@@ -1,0 +1,44 @@
+[
+  {
+    "drug": "Abacavir",
+    "gene": "HLA-B",
+    "biomarker": "HLA-B*57:01",
+    "fda_section": "Boxed Warning, Contraindications, Warnings and Precautions",
+    "labeling_action": "Genetic testing required prior to initiation. Contraindicated in HLA-B*57:01 positive patients."
+  },
+  {
+    "drug": "Carbamazepine",
+    "gene": "HLA-B",
+    "biomarker": "HLA-B*15:02, HLA-A*31:01",
+    "fda_section": "Boxed Warning, Warnings and Precautions",
+    "labeling_action": "Screening recommended prior to treatment in patients of genetically at-risk ancestry."
+  },
+  {
+    "drug": "Clopidogrel",
+    "gene": "CYP2C19",
+    "biomarker": "CYP2C19 poor metabolizer status",
+    "fda_section": "Boxed Warning, Dosage and Administration, Clinical Pharmacology",
+    "labeling_action": "Diminished antiplatelet effect in CYP2C19 poor metabolizers; consider alternative P2Y12 inhibitor."
+  },
+  {
+    "drug": "Codeine",
+    "gene": "CYP2D6",
+    "biomarker": "CYP2D6 ultra-rapid metabolizer status",
+    "fda_section": "Boxed Warning, Contraindications, Warnings and Precautions",
+    "labeling_action": "Contraindicated in pediatric patients for post-operative tonsillectomy/adenoidectomy pain and ultra-rapid metabolizers."
+  },
+  {
+    "drug": "Fluorouracil",
+    "gene": "DPYD",
+    "biomarker": "DPYD deficiency",
+    "fda_section": "Warnings and Precautions, Clinical Pharmacology",
+    "labeling_action": "Increased risk of severe, life-threatening, or fatal toxicities in patients with certain homozygous or certain compound heterozygous DPYD variants."
+  },
+  {
+    "drug": "Warfarin",
+    "gene": "CYP2C9, VKORC1",
+    "biomarker": "CYP2C9 and VKORC1 alleles",
+    "fda_section": "Dosage and Administration, Clinical Pharmacology",
+    "labeling_action": "Lower initial doses recommended for patients with CYP2C9 and VKORC1 variants."
+  }
+]

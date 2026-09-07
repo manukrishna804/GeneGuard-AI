@@ -1,0 +1,122 @@
+{
+  "CYP2C19": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2": { "name": "*2", "function": "No function", "activity_value": 0.0, "variants": ["rs4244285", "c.681G>A", "p.Pro227="] },
+      "*3": { "name": "*3", "function": "No function", "activity_value": 0.0, "variants": ["rs4986893", "c.636G>A", "p.Trp212*"] },
+      "*4": { "name": "*4", "function": "No function", "activity_value": 0.0, "variants": ["rs28399504", "c.1A>G", "p.Met1Val"] },
+      "*17": { "name": "*17", "function": "Increased function", "activity_value": 1.5, "variants": ["rs12248560", "c.-806C>T"] }
+    }
+  },
+  "CYP2D6": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2": { "name": "*2", "function": "Normal function", "activity_value": 1.0, "variants": ["rs16947", "rs1135840", "c.2851C>T"] },
+      "*3": { "name": "*3", "function": "No function", "activity_value": 0.0, "variants": ["rs35742686", "c.2549delA"] },
+      "*4": { "name": "*4", "function": "No function", "activity_value": 0.0, "variants": ["rs3892097", "c.1846G>A"] },
+      "*5": { "name": "*5", "function": "No function", "activity_value": 0.0, "variants": ["gene_deletion"] },
+      "*6": { "name": "*6", "function": "No function", "activity_value": 0.0, "variants": ["rs5030655", "c.1707delT"] },
+      "*9": { "name": "*9", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs5030656", "c.2615_2617delAAG"] },
+      "*10": { "name": "*10", "function": "Decreased function", "activity_value": 0.25, "variants": ["rs1065852", "c.100C>T"] },
+      "*17": { "name": "*17", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs28371706", "c.1023C>T"] },
+      "*41": { "name": "*41", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs28371725", "c.2988G>A"] },
+      "*1xN": { "name": "*1xN", "function": "Increased function", "activity_value": 2.0, "variants": ["gene_duplication"] },
+      "*2xN": { "name": "*2xN", "function": "Increased function", "activity_value": 2.0, "variants": ["rs16947", "gene_duplication"] }
+    }
+  },
+  "CYP2C9": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2": { "name": "*2", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs1799853", "c.430C>T", "p.Arg144Cys"] },
+      "*3": { "name": "*3", "function": "No function", "activity_value": 0.0, "variants": ["rs1057910", "c.1075A>C", "p.Ile359Leu"] },
+      "*5": { "name": "*5", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs28371686", "c.1080C>G"] },
+      "*6": { "name": "*6", "function": "No function", "activity_value": 0.0, "variants": ["rs9332131", "c.818delA"] }
+    }
+  },
+  "CYP3A5": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*3": { "name": "*3", "function": "No function", "activity_value": 0.0, "variants": ["rs776746", "c.219-237A>G"] },
+      "*6": { "name": "*6", "function": "No function", "activity_value": 0.0, "variants": ["rs10264272", "c.624G>A"] },
+      "*7": { "name": "*7", "function": "No function", "activity_value": 0.0, "variants": ["rs41303343", "c.1068C>T"] }
+    }
+  },
+  "DPYD": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2A": { "name": "*2A", "function": "No function", "activity_value": 0.0, "variants": ["rs3918290", "c.1905+1G>A", "IVS14+1G>A"] },
+      "*13": { "name": "*13", "function": "No function", "activity_value": 0.0, "variants": ["rs55886062", "c.1679T>G", "p.Ile560Ser"] },
+      "HapB3": { "name": "HapB3", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs56038477", "c.1236G>A", "rs75017182"] },
+      "c.2846A>T": { "name": "c.2846A>T", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs67376798", "c.2846A>T", "p.Asp949Val"] }
+    }
+  },
+  "TPMT": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2": { "name": "*2", "function": "No function", "activity_value": 0.0, "variants": ["rs1800462", "c.238G>C", "p.Ala80Pro"] },
+      "*3A": { "name": "*3A", "function": "No function", "activity_value": 0.0, "variants": ["rs1800460", "rs1142345", "c.460G>A", "c.719A>G"] },
+      "*3B": { "name": "*3B", "function": "No function", "activity_value": 0.0, "variants": ["rs1800460", "c.460G>A", "p.Ala154Thr"] },
+      "*3C": { "name": "*3C", "function": "No function", "activity_value": 0.0, "variants": ["rs1142345", "c.719A>G", "p.Tyr240Cys"] }
+    }
+  },
+  "NUDT15": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*2": { "name": "*2", "function": "No function", "activity_value": 0.0, "variants": ["rs116855232", "rs186364157", "c.415C>T", "c.55_56insGAGTCG"] },
+      "*3": { "name": "*3", "function": "No function", "activity_value": 0.0, "variants": ["rs116855232", "c.415C>T", "p.Arg139Cys"] }
+    }
+  },
+  "SLCO1B1": {
+    "reference_allele": "*1A",
+    "alleles": {
+      "*1A": { "name": "*1A", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "*1B": { "name": "*1B", "function": "Normal function", "activity_value": 1.0, "variants": ["rs2306283", "c.388A>G"] },
+      "*5": { "name": "*5", "function": "Poor function", "activity_value": 0.0, "variants": ["rs4149056", "c.521T>C", "p.Val174Ala"] },
+      "*15": { "name": "*15", "function": "Poor function", "activity_value": 0.0, "variants": ["rs2306283", "rs4149056", "c.388A>G", "c.521T>C"] }
+    }
+  },
+  "VKORC1": {
+    "reference_allele": "G",
+    "alleles": {
+      "G": { "name": "-1639G", "function": "Normal sensitivity", "activity_value": 1.0, "variants": [] },
+      "A": { "name": "-1639A", "function": "High warfarin sensitivity", "activity_value": 0.0, "variants": ["rs9923231", "c.-1639G>A"] }
+    }
+  },
+  "HLA-B": {
+    "reference_allele": "Negative",
+    "alleles": {
+      "*57:01": { "name": "*57:01", "function": "Abacavir hypersensitivity risk", "activity_value": 0.0, "variants": ["HLA-B*57:01", "rs2395029", "rs144012689"] },
+      "*58:01": { "name": "*58:01", "function": "Allopurinol severe cutaneous adverse reaction risk", "activity_value": 0.0, "variants": ["HLA-B*58:01", "rs9263726"] },
+      "*15:02": { "name": "*15:02", "function": "Carbamazepine SJS/TEN risk", "activity_value": 0.0, "variants": ["HLA-B*15:02", "rs2844682"] }
+    }
+  },
+  "HLA-A": {
+    "reference_allele": "Negative",
+    "alleles": {
+      "*31:01": { "name": "*31:01", "function": "Carbamazepine hypersensitivity risk", "activity_value": 0.0, "variants": ["HLA-A*31:01", "rs1061235"] }
+    }
+  },
+  "UGT1A1": {
+    "reference_allele": "*1",
+    "alleles": {
+      "*1": { "name": "*1", "function": "Normal function (6 TA repeats)", "activity_value": 1.0, "variants": [] },
+      "*28": { "name": "*28", "function": "Decreased function (7 TA repeats)", "activity_value": 0.5, "variants": ["rs8175347", "c.-53_-52insTA"] },
+      "*6": { "name": "*6", "function": "Decreased function", "activity_value": 0.5, "variants": ["rs4124874", "c.211G>A", "p.Gly71Arg"] }
+    }
+  },
+  "G6PD": {
+    "reference_allele": "B (Normal)",
+    "alleles": {
+      "B": { "name": "B (Normal)", "function": "Normal function", "activity_value": 1.0, "variants": [] },
+      "A-": { "name": "A-", "function": "Deficient function (Class III)", "activity_value": 0.2, "variants": ["rs1050828", "rs1050829", "c.202G>A", "c.376A>G"] },
+      "Mediterranean": { "name": "Mediterranean", "function": "Severely deficient (Class II)", "activity_value": 0.0, "variants": ["rs5030868", "c.563C>T"] }
+    }
+  }
+}

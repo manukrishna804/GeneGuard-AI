@@ -1,0 +1,212 @@
+[
+  {
+    "drug_name": "Clopidogrel",
+    "brand_names": ["Plavix", "Iscover"],
+    "primary_gene": "CYP2C19",
+    "secondary_genes": ["PON1", "ABCB1"],
+    "therapeutic_area": "Cardiovascular / Antiplatelet",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Warfarin",
+    "brand_names": ["Coumadin", "Jantoven"],
+    "primary_gene": "CYP2C9",
+    "secondary_genes": ["VKORC1", "CYP4F2"],
+    "therapeutic_area": "Cardiovascular / Anticoagulant",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Simvastatin",
+    "brand_names": ["Zocor", "Vytorin"],
+    "primary_gene": "SLCO1B1",
+    "secondary_genes": ["CYP3A4", "ABCG2"],
+    "therapeutic_area": "Cardiovascular / Statin",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Atorvastatin",
+    "brand_names": ["Lipitor"],
+    "primary_gene": "SLCO1B1",
+    "secondary_genes": ["CYP3A4", "ABCG2"],
+    "therapeutic_area": "Cardiovascular / Statin",
+    "cpic_level": "B",
+    "pharmgkb_level": "1B",
+    "fda_label_status": "Informative PGx"
+  },
+  {
+    "drug_name": "Codeine",
+    "brand_names": ["Tylenol with Codeine"],
+    "primary_gene": "CYP2D6",
+    "secondary_genes": [],
+    "therapeutic_area": "Analgesia / Opioid",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Tramadol",
+    "brand_names": ["Ultram", "ConZip"],
+    "primary_gene": "CYP2D6",
+    "secondary_genes": [],
+    "therapeutic_area": "Analgesia / Opioid",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Tamoxifen",
+    "brand_names": ["Nolvadex", "Soltamox"],
+    "primary_gene": "CYP2D6",
+    "secondary_genes": [],
+    "therapeutic_area": "Oncology / SERM",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Fluorouracil",
+    "brand_names": ["5-FU", "Adrucil", "Efudex"],
+    "primary_gene": "DPYD",
+    "secondary_genes": ["TYMS"],
+    "therapeutic_area": "Oncology / Antimetabolite",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Capecitabine",
+    "brand_names": ["Xeloda"],
+    "primary_gene": "DPYD",
+    "secondary_genes": [],
+    "therapeutic_area": "Oncology / Antimetabolite",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Azathioprine",
+    "brand_names": ["Imuran", "Azasan"],
+    "primary_gene": "TPMT",
+    "secondary_genes": ["NUDT15"],
+    "therapeutic_area": "Immunology / Antirheumatic",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Mercaptopurine",
+    "brand_names": ["Purinethol", "Purixan"],
+    "primary_gene": "TPMT",
+    "secondary_genes": ["NUDT15"],
+    "therapeutic_area": "Oncology / Antimetabolite",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Abacavir",
+    "brand_names": ["Ziagen", "Epzicom", "Triumeq"],
+    "primary_gene": "HLA-B",
+    "secondary_genes": [],
+    "therapeutic_area": "Infectious Disease / Antiretroviral",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Allopurinol",
+    "brand_names": ["Zyloprim", "Aloprim"],
+    "primary_gene": "HLA-B",
+    "secondary_genes": [],
+    "therapeutic_area": "Rheumatology / Xanthine Oxidase Inhibitor",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Carbamazepine",
+    "brand_names": ["Tegretol", "Carbatrol"],
+    "primary_gene": "HLA-B",
+    "secondary_genes": ["HLA-A", "CYP3A4"],
+    "therapeutic_area": "Neurology / Anticonvulsant",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  },
+  {
+    "drug_name": "Escitalopram",
+    "brand_names": ["Lexapro", "Cipralex"],
+    "primary_gene": "CYP2C19",
+    "secondary_genes": [],
+    "therapeutic_area": "Psychiatry / SSRI",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Citalopram",
+    "brand_names": ["Celexa"],
+    "primary_gene": "CYP2C19",
+    "secondary_genes": [],
+    "therapeutic_area": "Psychiatry / SSRI",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Sertraline",
+    "brand_names": ["Zoloft"],
+    "primary_gene": "CYP2C19",
+    "secondary_genes": ["CYP2B6"],
+    "therapeutic_area": "Psychiatry / SSRI",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Omeprazole",
+    "brand_names": ["Prilosec"],
+    "primary_gene": "CYP2C19",
+    "secondary_genes": [],
+    "therapeutic_area": "Gastroenterology / PPI",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Tacrolimus",
+    "brand_names": ["Prograf", "Advagraf"],
+    "primary_gene": "CYP3A5",
+    "secondary_genes": [],
+    "therapeutic_area": "Transplantation / Immunosuppressant",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Irinotecan",
+    "brand_names": ["Camptosar"],
+    "primary_gene": "UGT1A1",
+    "secondary_genes": [],
+    "therapeutic_area": "Oncology / Topoisomerase Inhibitor",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Actionable PGx"
+  },
+  {
+    "drug_name": "Rasburicase",
+    "brand_names": ["Elitek", "Fasturtec"],
+    "primary_gene": "G6PD",
+    "secondary_genes": [],
+    "therapeutic_area": "Oncology / Urate Oxidase",
+    "cpic_level": "A",
+    "pharmgkb_level": "1A",
+    "fda_label_status": "Boxed Warning"
+  }
+]

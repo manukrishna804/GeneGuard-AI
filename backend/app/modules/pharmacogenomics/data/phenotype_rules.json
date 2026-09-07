@@ -1,0 +1,76 @@
+{
+  "activity_score_thresholds": {
+    "CYP2D6": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 0.25, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 1.25, "max_score": 2.25, "phenotype": "Normal Metabolizer", "code": "NM" },
+      { "min_score": 2.26, "max_score": 99.0, "phenotype": "Ultrarapid Metabolizer", "code": "UM" }
+    ],
+    "CYP2C19": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 0.5, "max_score": 0.5, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer", "code": "NM" },
+      { "min_score": 2.5, "max_score": 2.5, "phenotype": "Rapid Metabolizer", "code": "RM" },
+      { "min_score": 3.0, "max_score": 99.0, "phenotype": "Ultrarapid Metabolizer", "code": "UM" }
+    ],
+    "CYP2C9": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 0.5, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 1.5, "max_score": 2.0, "phenotype": "Normal Metabolizer", "code": "NM" }
+    ],
+    "CYP3A5": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer (Non-expressor)", "code": "PM" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Metabolizer (Intermediate expressor)", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer (Expressor)", "code": "NM" }
+    ],
+    "DPYD": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer (Complete DPD deficiency)", "code": "PM" },
+      { "min_score": 0.5, "max_score": 1.5, "phenotype": "Intermediate Metabolizer (Partial DPD deficiency)", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer (Normal DPD activity)", "code": "NM" }
+    ],
+    "TPMT": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer", "code": "NM" }
+    ],
+    "NUDT15": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer", "code": "NM" }
+    ],
+    "SLCO1B1": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Function", "code": "PF" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Decreased Function", "code": "DF" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Function", "code": "NF" },
+      { "min_score": 3.0, "max_score": 99.0, "phenotype": "Increased Function", "code": "IF" }
+    ],
+    "VKORC1": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "High Sensitivity (Low Dose Required)", "code": "High Sensitivity" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Sensitivity (Moderate Dose)", "code": "Intermediate Sensitivity" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Sensitivity (Standard Dose)", "code": "Normal Sensitivity" }
+    ],
+    "UGT1A1": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Poor Metabolizer", "code": "PM" },
+      { "min_score": 1.0, "max_score": 1.0, "phenotype": "Intermediate Metabolizer", "code": "IM" },
+      { "min_score": 2.0, "max_score": 2.0, "phenotype": "Normal Metabolizer", "code": "NM" }
+    ],
+    "G6PD": [
+      { "min_score": 0.0, "max_score": 0.0, "phenotype": "Deficient (Class II/III)", "code": "Deficient" },
+      { "min_score": 0.2, "max_score": 0.5, "phenotype": "Deficient with residual activity", "code": "Deficient" },
+      { "min_score": 1.0, "max_score": 2.0, "phenotype": "Normal Activity (Class IV/V)", "code": "Normal" }
+    ]
+  },
+  "direct_allele_phenotypes": {
+    "HLA-B": {
+      "*57:01_positive": "Abacavir Hypersensitivity High Risk (Positive)",
+      "*58:01_positive": "Allopurinol Severe Cutaneous Reaction High Risk (Positive)",
+      "*15:02_positive": "Carbamazepine SJS/TEN High Risk (Positive)",
+      "negative": "Low Risk / Negative"
+    },
+    "HLA-A": {
+      "*31:01_positive": "Carbamazepine Hypersensitivity High Risk (Positive)",
+      "negative": "Low Risk / Negative"
+    }
+  }
+}
