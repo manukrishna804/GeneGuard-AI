@@ -1,0 +1,4 @@
+##fileformat=VCFv4.2
+##source=GeneGuard-Module4-Compound-Test
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	PARENT2
+chr7	117530975	.	G	A	.	PASS	.	GT	0/1

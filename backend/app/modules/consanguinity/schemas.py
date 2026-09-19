@@ -238,35 +238,38 @@ class OffspringRiskResult(BaseModel):
 # ============================================================
 
 class OffspringRiskAssessmentResponse(BaseModel):
-    """
-    Complete response returned by Module 4.
-    """
-
     assessment_id: Optional[str] = None
-
     status: str
-
-    risks: List[OffspringRiskResult] = Field(
-        default_factory=list
-    )
-
+    risks: List[OffspringRiskResult] = Field(default_factory=list)
     shared_risk_count: int = 0
-
     uncertain_variant_count: int = 0
-
-    consanguinity_context: Optional[str] = None
-
-    limitations: List[str] = Field(
-        default_factory=list
+    compound_heterozygous_candidates: List[str] = Field(
+        default_factory=list,
+        description="Potential same-gene/different-variant pairs requiring further analysis"
     )
+    consanguinity_context: Optional[str] = None
+    limitations: List[str] = Field(default_factory=list)
 
 class VariantRiskResult(BaseModel):
     chromosome: Optional[str] = None
     position: Optional[int] = None
     reference: Optional[str] = None
     alternate: Optional[str] = None
+
+    # Variant annotation
+    gene: Optional[str] = None
+    variant_name: Optional[str] = None
+    condition: Optional[str] = None
+    inheritance: Optional[str] = None
+    classification: VariantClassification = VariantClassification.UNKNOWN
+    evidence_sources: List[str] = Field(default_factory=list)
+
+    # Parent genetic status
     parent1_status: str
     parent2_status: str
+
+    # Offspring probability
     affected_probability: float = Field(ge=0.0, le=1.0)
     carrier_probability: float = Field(ge=0.0, le=1.0)
     unaffected_probability: float = Field(ge=0.0, le=1.0)
+    explanation: Optional[str] = None
