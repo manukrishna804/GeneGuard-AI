@@ -5,6 +5,7 @@ from typing import List
 from .compound_heterozygous import find_same_gene_different_variants
 from .schemas import (
     ConsanguinityInfo,
+    FamilyHistoryEntry,
     GeneticVariant,
     OffspringRiskAssessmentResponse,
     OffspringRiskResult,
@@ -15,6 +16,7 @@ from .schemas import (
 def build_assessment_response(
     risks: List[VariantRiskResult],
     consanguinity: ConsanguinityInfo | None = None,
+    family_history: List[FamilyHistoryEntry] | None = None,
     parent1_variants: List[GeneticVariant] | None = None,
     parent2_variants: List[GeneticVariant] | None = None,
 ) -> OffspringRiskAssessmentResponse:
@@ -150,6 +152,31 @@ def build_assessment_response(
             compound_candidates.append(description)
 
     # ---------------------------------------------------------
+    # Family history context
+    # ---------------------------------------------------------
+
+    family_history_context: List[str] = []
+
+    if family_history:
+
+        for entry in family_history:
+
+            summary = entry.relationship
+
+            if entry.health_status.value != "unknown":
+                summary += f": {entry.health_status.value}"
+
+            if entry.condition:
+                summary += f" with {entry.condition}"
+
+            if entry.known_variant:
+                summary += (
+                    f" (known variant: {entry.known_variant})"
+                )
+
+            family_history_context.append(summary)
+
+    # ---------------------------------------------------------
     # Build final assessment
     # ---------------------------------------------------------
 
@@ -160,5 +187,6 @@ def build_assessment_response(
         uncertain_variant_count=0,
         compound_heterozygous_candidates=compound_candidates,
         consanguinity_context=consanguinity_context,
+        family_history_context=family_history_context,
         limitations=limitations,
     )

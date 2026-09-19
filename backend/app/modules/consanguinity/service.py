@@ -6,6 +6,7 @@ from .risk_calculator import calculate_shared_variant_risks
 from .risk_filter import filter_risk_relevant_variants
 from .schemas import (
     ConsanguinityInfo,
+    FamilyHistoryEntry,
     OffspringRiskAssessmentResponse,
 )
 from .variant_annotation import annotate_variants
@@ -16,6 +17,7 @@ def assess_offspring_risk_from_vcfs(
     parent1_vcf: str,
     parent2_vcf: str,
     consanguinity: ConsanguinityInfo | None = None,
+    family_history: list[FamilyHistoryEntry] | None = None,
 ) -> OffspringRiskAssessmentResponse:
     """
     Run the complete Module 4 offspring-risk workflow
@@ -77,4 +79,7 @@ def assess_offspring_risk_from_vcfs(
     return build_assessment_response(
         risks,
         consanguinity,
+        family_history,
+        parent1_variants,
+        parent2_variants,
     )

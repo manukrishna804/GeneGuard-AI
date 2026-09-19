@@ -243,13 +243,20 @@ class OffspringRiskAssessmentResponse(BaseModel):
     risks: List[OffspringRiskResult] = Field(default_factory=list)
     shared_risk_count: int = 0
     uncertain_variant_count: int = 0
+
     compound_heterozygous_candidates: List[str] = Field(
         default_factory=list,
         description="Potential same-gene/different-variant pairs requiring further analysis"
     )
-    consanguinity_context: Optional[str] = None
-    limitations: List[str] = Field(default_factory=list)
 
+    consanguinity_context: Optional[str] = None
+
+    family_history_context: List[str] = Field(
+        default_factory=list,
+        description="Structured summaries of reported family-history information"
+    )
+
+    limitations: List[str] = Field(default_factory=list)
 class VariantRiskResult(BaseModel):
     chromosome: Optional[str] = None
     position: Optional[int] = None
