@@ -259,3 +259,14 @@ class OffspringRiskAssessmentResponse(BaseModel):
     limitations: List[str] = Field(
         default_factory=list
     )
+
+class VariantRiskResult(BaseModel):
+    chromosome: Optional[str] = None
+    position: Optional[int] = None
+    reference: Optional[str] = None
+    alternate: Optional[str] = None
+    parent1_status: str
+    parent2_status: str
+    affected_probability: float = Field(ge=0.0, le=1.0)
+    carrier_probability: float = Field(ge=0.0, le=1.0)
+    unaffected_probability: float = Field(ge=0.0, le=1.0)
