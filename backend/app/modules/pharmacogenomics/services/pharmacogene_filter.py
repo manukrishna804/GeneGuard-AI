@@ -1,75 +1,90 @@
-import json
-from pathlib import Path
 from typing import Any, Dict, List, Set
 
-from app.modules.pharmacogenomics.config import pgx_settings
+
+# Pharmacogenes currently supported by Module 5.
+#
+# This list follows the genes identified in the Module 5
+# specification. We will expand the reference data later.
+SUPPORTED_PHARMACOGENES: Set[str] = {
+    "CYP2D6",
+    "CYP2C19",
+    "CYP2C9",
+    "CYP3A5",
+    "TPMT",
+    "NUDT15",
+    "DPYD",
+    "SLCO1B1",
+    "VKORC1",
+    "HLA-B",
+    "HLA-A",
+    "UGT1A1",
+    "G6PD",
+}
 
 
-def load_known_pharmacogenes() -> Set[str]:
+def normalize_gene_name(gene: str | None) -> str | None:
     """
-    Load the set of established pharmacogenes supported by GeneGuard PGx.
+    Normalize a gene name before comparing it with the
+    supported pharmacogene list.
     """
-    allele_file = pgx_settings.DATA_DIR / "allele_definitions.json"
-    pairs_file = pgx_settings.DATA_DIR / "gene_drug_pairs.json"
-    
-    genes: Set[str] = set()
-    
-    if allele_file.exists():
-        with open(allele_file, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            genes.update(data.keys())
-            
-    if pairs_file.exists():
-        with open(pairs_file, "r", encoding="utf-8") as f:
-            pairs = json.load(f)
-            for item in pairs:
-                if item.get("primary_gene"):
-                    genes.add(item["primary_gene"].upper())
-                for sec in item.get("secondary_genes", []):
-                    genes.add(sec.upper())
-                    
-    return genes
+
+    if not gene:
+        return None
+
+    return gene.strip().upper()
 
 
-KNOWN_PHARMACOGENES = load_known_pharmacogenes()
-
-
-def filter_pharmacogene_variants(variant_records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def filter_pharmacogenes(
+    variants: List[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Stage 2: Filter input variants to isolate pharmacogenes.
-    Accepts raw variant records from WES Analysis / Module 1 or normalized dictionaries.
+    Filter the complete variant list and keep only variants
+    belonging to supported pharmacogenes.
+
+    Input:
+        List of variants from Module 1.
+
+    Output:
+        Dictionary grouped by pharmacogene.
+
+    Example:
+
+        {
+            "CYP2C19": [
+                {
+                    "rsid": "rs4244285",
+                    "genotype": "A/G",
+                    ...
+                }
+            ]
+        }
     """
-    filtered = []
-    
-    for rec in variant_records:
-        gene = None
-        
-        # Handle dict formats from WES module or VariantInput
-        if isinstance(rec, dict):
-            gene = (
-                rec.get("gene") or 
-                rec.get("gene_symbol") or 
-                rec.get("variant", {}).get("gene") or
-                rec.get("variant", {}).get("gene_symbol")
-            )
-        elif hasattr(rec, "gene"):
-            gene = getattr(rec, "gene")
-            
+
+    filtered: Dict[str, List[Dict[str, Any]]] = {}
+
+    for variant in variants:
+        gene = normalize_gene_name(
+            variant.get("gene")
+        )
+
         if not gene:
             continue
-            
-        gene_upper = str(gene).strip().upper()
-        
-        if gene_upper in KNOWN_PHARMACOGENES:
-            # Normalize record
-            norm_rec = {
-                "gene": gene_upper,
-                "hgvs_c": (rec.get("hgvs_c") or rec.get("c_dot") or rec.get("variant", {}).get("hgvs_c") or ""),
-                "hgvs_p": (rec.get("hgvs_p") or rec.get("p_dot") or rec.get("variant", {}).get("hgvs_p") or ""),
-                "rsid": (rec.get("rsid") or rec.get("rs_id") or rec.get("variant", {}).get("rsid") or ""),
-                "zygosity": (rec.get("zygosity") or rec.get("genotype") or "heterozygous").lower(),
-                "star_allele": (rec.get("star_allele") or rec.get("allele") or None)
-            }
-            filtered.append(norm_rec)
-            
+
+        if gene not in SUPPORTED_PHARMACOGENES:
+            continue
+
+        if gene not in filtered:
+            filtered[gene] = []
+
+        filtered[gene].append(variant)
+
     return filtered
+
+
+def get_supported_pharmacogenes() -> List[str]:
+    """
+    Return the list of pharmacogenes currently supported
+    by Module 5.
+    """
+
+    return sorted(SUPPORTED_PHARMACOGENES)

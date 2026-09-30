@@ -1,66 +1,69 @@
 from datetime import datetime
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Float
-from sqlalchemy.orm import relationship
+from typing import Any
+
+from sqlalchemy import DateTime, Integer, JSON, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database.base import Base
 
 
-class PGxReport(Base):
-    __tablename__ = "pgx_reports"
+class PharmacogenomicsReport(Base):
+    """
+    Stores the final Module 5 pharmacogenomics analysis.
 
-    id = Column(Integer, primary_key=True, index=True)
+    Module 5 generates a structured PGx recommendation package
+    which can later be consumed by Module 6.
+    """
 
-    patient_id = Column(
+    __tablename__ = "pharmacogenomics_reports"
+
+    id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("patients.id"),
-        nullable=False,
-        index=True
+        primary_key=True,
+        index=True,
     )
 
-    status = Column(
-        String(50),
+    patient_id: Mapped[str] = mapped_column(
+        String(100),
         nullable=False,
-        default="completed"
+        index=True,
     )
 
-    confidence_score = Column(
-        Float,
-        nullable=False,
-        default=95.0
-    )
-
-    flagged_conflicts_count = Column(
-        Integer,
-        nullable=False,
-        default=0
-    )
-
-    medications_evaluated = Column(
+    recommendations: Mapped[list[Any]] = mapped_column(
         JSON,
-        nullable=True
+        nullable=False,
+        default=list,
     )
 
-    recommendations = Column(
+    flagged_conflicts: Mapped[list[Any]] = mapped_column(
         JSON,
-        nullable=True
+        nullable=False,
+        default=list,
     )
 
-    full_evidence_package = Column(
-        JSON,
-        nullable=True
+    confidence: Mapped[float | None] = mapped_column(
+        nullable=True,
     )
 
-    created_at = Column(
+    specialist: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    explanation: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        nullable=False,
-        default=datetime.utcnow
-    )
-
-    updated_at = Column(
-        DateTime,
-        nullable=False,
         default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        nullable=False,
     )
 
-    patient = relationship("Patient")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )

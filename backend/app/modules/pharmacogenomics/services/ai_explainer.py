@@ -2,106 +2,230 @@ import json
 import os
 from typing import Any, Dict, Optional
 
-from app.modules.pharmacogenomics.config import pgx_settings
+from groq import AsyncGroq
 
 
-def generate_fallback_explanations(evidence: Dict[str, Any]) -> Dict[str, str]:
+class AIExplainer:
     """
-    Deterministic rule-based explanation generator (Zero Hallucination Fallback).
+    AI explanation layer for Module 5.
+
+    IMPORTANT:
+    The AI does not make clinical decisions.
+
+    It receives an already-generated rule-based
+    recommendation and explains it in plain language.
     """
-    drug = evidence["gene_drug_pair"]["drug"]
-    gene = evidence["genomic_profile"]["gene"]
-    diplotype = evidence["genomic_profile"]["diplotype"]
-    phenotype = evidence["genomic_profile"]["phenotype"]
-    rec = evidence["guideline_evidence"]["cpic_recommendation"]
-    implication = evidence["guideline_evidence"]["clinical_implication"]
-    actionability = evidence["guideline_evidence"]["actionability"]
 
-    if "Contraindicated" in actionability or "Alternative" in actionability:
-        patient_text = (
-            f"Your genetic test shows you have the {diplotype} variation in the {gene} gene, "
-            f"meaning your body is categorized as a '{phenotype}'. This affects how you process {drug}. "
-            f"Because of this, {drug} may not work properly or could cause increased side effects. "
-            f"Your doctor is advised to consider a safe, alternative medication."
-        )
-    elif "Dose Adjustment" in actionability:
-        patient_text = (
-            f"Your test shows the {diplotype} result for {gene} ({phenotype}). "
-            f"Your body processes {drug} differently than average. Your healthcare team may adjust "
-            f"your starting dosage to ensure the medicine is both effective and safe for you."
-        )
-    else:
-        patient_text = (
-            f"Your {gene} genetic test result ({diplotype}, {phenotype}) is within normal parameters for {drug}. "
-            f"Standard dosage is expected to work as intended."
-        )
+    def __init__(self):
+        self.api_key = os.getenv("GROQ_API_KEY")
 
-    clinician_text = (
-        f"Patient genotype is {gene} {diplotype} ({phenotype}). "
-        f"Clinical Implication: {implication} "
-        f"Guideline Guidance: {rec}"
-    )
+        self.client: Optional[AsyncGroq] = None
 
-    return {
-        "patient_explanation": patient_text,
-        "clinician_summary": clinician_text
-    }
-
-
-async def generate_ai_explanations(evidence: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Stage 10: Generate plain-language patient explanation and clinician summary via LLM or deterministic fallback.
-    """
-    # Check if Groq or OpenAI is configured
-    groq_key = os.getenv("GROQ_API_KEY") or pgx_settings.GROQ_API_KEY
-    openai_key = os.getenv("OPENAI_API_KEY") or pgx_settings.OPENAI_API_KEY
-
-    # If neither key is present, return deterministic template
-    if not groq_key and not openai_key:
-        return generate_fallback_explanations(evidence)
-
-    # If keys exist, attempt structured LLM generation
-    prompt = (
-        "You are an expert Clinical Pharmacogenomics AI assistant in GeneGuard. "
-        "Given the following structured PGx evidence JSON, produce two short explanations:\n"
-        "1. 'patient_explanation': A clear, compassionate, 6th-to-8th-grade reading level explanation for the patient.\n"
-        "2. 'clinician_summary': A precise 2-sentence clinical pharmacology summary citing the guideline.\n\n"
-        "IMPORTANT RULES:\n"
-        "- Do NOT alter or override the recommendation in the JSON.\n"
-        "- Do NOT invent new gene names or side effects.\n"
-        "- Return strictly a valid JSON object with keys 'patient_explanation' and 'clinician_summary'.\n\n"
-        f"EVIDENCE JSON:\n{json.dumps(evidence, indent=2)}"
-    )
-
-    try:
-        if groq_key:
-            from groq import AsyncGroq
-            client = AsyncGroq(api_key=groq_key)
-            response = await client.chat.completions.create(
-                model=pgx_settings.DEFAULT_LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                response_format={"type": "json_object"}
+        if self.api_key:
+            self.client = AsyncGroq(
+                api_key=self.api_key
             )
-            content = response.choices[0].message.content
-            parsed = json.loads(content)
-            if "patient_explanation" in parsed and "clinician_summary" in parsed:
-                return parsed
-        elif openai_key:
-            from openai import AsyncOpenAI
-            client = AsyncOpenAI(api_key=openai_key)
-            response = await client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                response_format={"type": "json_object"}
-            )
-            content = response.choices[0].message.content
-            parsed = json.loads(content)
-            if "patient_explanation" in parsed and "clinician_summary" in parsed:
-                return parsed
-    except Exception:
-        # Fallback seamlessly on any LLM or network error
-        pass
 
-    return generate_fallback_explanations(evidence)
+        self.model = os.getenv(
+            "GROQ_MODEL",
+            "llama-3.1-8b-instant",
+        )
+
+    async def explain(
+        self,
+        recommendation: Dict[str, Any],
+    ) -> str:
+        """
+        Generate a patient-friendly explanation from
+        structured evidence.
+
+        The raw VCF is never sent to the LLM.
+        """
+
+        if not self.client:
+            return self._fallback_explanation(
+                recommendation
+            )
+
+        evidence_json = json.dumps(
+            recommendation,
+            indent=2,
+            default=str,
+        )
+
+        prompt = f"""
+You are the explanation layer of a pharmacogenomics
+clinical decision-support system.
+
+The clinical recommendation has ALREADY been produced
+by a deterministic rule engine.
+
+Your job is ONLY to explain that recommendation in
+clear, simple language.
+
+Do NOT:
+- create a new recommendation
+- change the recommendation
+- override the rule engine
+- invent clinical evidence
+- invent guideline information
+- make claims not present in the supplied evidence
+
+If the evidence is incomplete or marked for review,
+clearly mention that.
+
+Use only the structured information supplied below.
+
+STRUCTURED PHARMACOGENOMICS RESULT:
+
+{evidence_json}
+
+Write a concise explanation covering:
+
+1. The relevant gene.
+2. The patient's diplotype, if available.
+3. The metabolizer phenotype, if available.
+4. The medication involved.
+5. What the existing recommendation says.
+6. The evidence/source information available.
+7. Any conflict or specialist-review warning.
+
+Do not provide additional treatment options that are
+not present in the supplied recommendation.
+"""
+
+        try:
+
+            response = await self.client.chat.completions.create(
+                model=self.model,
+
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You explain structured "
+                            "pharmacogenomics evidence. "
+                            "You do not make clinical decisions."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+
+                temperature=0.0,
+            )
+
+            explanation = (
+                response.choices[0]
+                .message
+                .content
+            )
+
+            if explanation:
+                return explanation.strip()
+
+        except Exception:
+            pass
+
+        return self._fallback_explanation(
+            recommendation
+        )
+
+    @staticmethod
+    def _fallback_explanation(
+        recommendation: Dict[str, Any],
+    ) -> str:
+        """
+        Deterministic fallback explanation used when
+        the AI service is unavailable.
+        """
+
+        gene = recommendation.get(
+            "gene"
+        )
+
+        drug = recommendation.get(
+            "drug"
+        )
+
+        diplotype = recommendation.get(
+            "diplotype"
+        )
+
+        phenotype = recommendation.get(
+            "phenotype"
+        )
+
+        recommendation_text = (
+            recommendation.get(
+                "recommendation"
+            )
+        )
+
+        parts = []
+
+        if gene:
+            parts.append(
+                f"The relevant pharmacogene is {gene}."
+            )
+
+        if diplotype:
+            parts.append(
+                f"The reported diplotype is {diplotype}."
+            )
+
+        if phenotype:
+            parts.append(
+                f"The associated phenotype is "
+                f"{phenotype}."
+            )
+
+        if drug:
+            parts.append(
+                f"The medication being evaluated is "
+                f"{drug}."
+            )
+
+        if recommendation_text:
+            parts.append(
+                f"The rule-based recommendation is: "
+                f"{recommendation_text}."
+            )
+
+        if recommendation.get("conflict"):
+            parts.append(
+                "The evidence contains a conflict and "
+                "requires specialist review."
+            )
+
+        if recommendation.get(
+            "requires_review"
+        ):
+            parts.append(
+                "Additional evidence review is "
+                "recommended before finalization."
+            )
+
+        if not parts:
+            return (
+                "No sufficient structured information "
+                "is available to generate an explanation."
+            )
+
+        return " ".join(parts)
+
+
+async def explain_recommendation(
+    recommendation: Dict[str, Any],
+) -> str:
+    """
+    Convenience function for the Module 5 pipeline.
+    """
+
+    explainer = AIExplainer()
+
+    return await explainer.explain(
+        recommendation
+    )

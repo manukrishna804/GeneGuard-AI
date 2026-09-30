@@ -1,0 +1,941 @@
+/* ==========================================================================
+   GeneGuard Module 5 — Pharmacogenomics (PGx) CDS Design System
+   ========================================================================== */
+
+:root {
+  --pgx-bg-primary: #0b0f19;
+  --pgx-bg-secondary: #111827;
+  --pgx-bg-card: rgba(17, 24, 39, 0.75);
+  --pgx-bg-card-hover: rgba(31, 41, 55, 0.85);
+  --pgx-border: rgba(255, 255, 255, 0.08);
+  --pgx-border-highlight: rgba(99, 102, 241, 0.35);
+
+  --pgx-text-main: #f9fafb;
+  --pgx-text-muted: #9ca3af;
+  --pgx-text-faint: #6b7280;
+
+  --pgx-primary: #6366f1;
+  --pgx-primary-glow: rgba(99, 102, 241, 0.25);
+  --pgx-secondary: #8b5cf6;
+  --pgx-cyan: #06b6d4;
+
+  /* Clinical Urgency Palette */
+  --pgx-critical: #ef4444;
+  --pgx-critical-bg: rgba(239, 68, 68, 0.12);
+  --pgx-critical-border: rgba(239, 68, 68, 0.35);
+
+  --pgx-warning: #f59e0b;
+  --pgx-warning-bg: rgba(245, 158, 11, 0.12);
+  --pgx-warning-border: rgba(245, 158, 11, 0.35);
+
+  --pgx-info: #3b82f6;
+  --pgx-info-bg: rgba(59, 130, 246, 0.12);
+  --pgx-info-border: rgba(59, 130, 246, 0.35);
+
+  --pgx-success: #10b981;
+  --pgx-success-bg: rgba(16, 185, 129, 0.12);
+  --pgx-success-border: rgba(16, 185, 129, 0.35);
+
+  --pgx-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --pgx-radius-sm: 6px;
+  --pgx-radius-md: 12px;
+  --pgx-radius-lg: 16px;
+  --pgx-radius-full: 9999px;
+
+  --pgx-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --pgx-glow: 0 0 20px rgba(99, 102, 241, 0.35);
+}
+
+.pgx-dashboard-container {
+  font-family: var(--pgx-font);
+  background-color: var(--pgx-bg-primary);
+  color: var(--pgx-text-main);
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px 32px 64px;
+  position: relative;
+  overflow-x: hidden;
+  text-align: left;
+}
+
+/* Background Glowing Mesh */
+.pgx-dashboard-container::before {
+  content: '';
+  position: absolute;
+  top: -150px;
+  right: -100px;
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pgx-dashboard-container::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  left: -150px;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pgx-content-wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   Header Component
+   ========================================================================== */
+.pgx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--pgx-border);
+  margin-bottom: 28px;
+}
+
+.pgx-header-title-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pgx-logo-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--pgx-radius-md);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+}
+
+.pgx-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pgx-header-subtitle {
+  font-size: 14px;
+  color: var(--pgx-text-muted);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pgx-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pgx-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--pgx-radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.1);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.pgx-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.pgx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--pgx-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.pgx-btn-primary {
+  background: linear-gradient(135deg, var(--pgx-primary) 0%, var(--pgx-secondary) 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px var(--pgx-primary-glow);
+}
+
+.pgx-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+}
+
+.pgx-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--pgx-text-main);
+  border-color: var(--pgx-border);
+}
+
+.pgx-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pgx-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Guideline version badges */
+.pgx-guideline-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--pgx-radius-md);
+  border: 1px solid var(--pgx-border);
+  font-size: 12px;
+}
+
+.pgx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: var(--pgx-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pgx-badge-cpic {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.pgx-badge-pharmgkb {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.pgx-badge-fda {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ==========================================================================
+   12-Stage Pipeline Stepper Tracker
+   ========================================================================== */
+.pgx-stages-panel {
+  background: var(--pgx-bg-secondary);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-lg);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  backdrop-filter: blur(12px);
+}
+
+.pgx-stages-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pgx-stages-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pgx-text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pgx-stepper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.pgx-step-card {
+  padding: 10px 12px;
+  border-radius: var(--pgx-radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--pgx-border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.pgx-step-card.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: var(--pgx-border-highlight);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.pgx-step-card.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.pgx-step-number {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pgx-text-muted);
+  flex-shrink: 0;
+}
+
+.pgx-step-card.active .pgx-step-number {
+  background: var(--pgx-primary);
+  color: #fff;
+}
+
+.pgx-step-card.completed .pgx-step-number {
+  background: #10b981;
+  color: #fff;
+}
+
+.pgx-step-content {
+  overflow: hidden;
+}
+
+.pgx-step-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pgx-text-main);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.pgx-step-desc {
+  font-size: 10px;
+  color: var(--pgx-text-faint);
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   Main Layout Grid (Sidebar Inputs vs Results Dashboard)
+   ========================================================================== */
+.pgx-main-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .pgx-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Left Panel: Patient & Medication Input
+   ========================================================================== */
+.pgx-input-panel {
+  background: var(--pgx-bg-card);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-lg);
+  padding: 24px;
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pgx-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: var(--pgx-text-main);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pgx-panel-subtitle {
+  font-size: 13px;
+  color: var(--pgx-text-muted);
+  margin: 0;
+}
+
+/* Preset Patient Case Selector */
+.pgx-preset-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pgx-preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pgx-preset-item {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.pgx-preset-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.pgx-preset-item.selected {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--pgx-primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+}
+
+.pgx-preset-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pgx-preset-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pgx-text-main);
+}
+
+.pgx-preset-category {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--pgx-text-muted);
+}
+
+.pgx-preset-desc {
+  font-size: 11px;
+  color: var(--pgx-text-muted);
+  line-height: 1.3;
+}
+
+/* Form Controls */
+.pgx-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pgx-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pgx-text-main);
+  display: flex;
+  justify-content: space-between;
+}
+
+.pgx-input,
+.pgx-select {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-sm);
+  color: #fff;
+  font-size: 14px;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.pgx-input:focus,
+.pgx-select:focus {
+  border-color: var(--pgx-primary);
+  box-shadow: 0 0 0 2px var(--pgx-primary-glow);
+}
+
+/* Medication Tags */
+.pgx-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pgx-med-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #e0e7ff;
+  padding: 4px 10px;
+  border-radius: var(--pgx-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.pgx-med-tag button {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Quick Drug Add Buttons */
+.pgx-quick-drugs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pgx-quick-drug-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--pgx-border);
+  color: var(--pgx-text-muted);
+  border-radius: var(--pgx-radius-sm);
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pgx-quick-drug-btn:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: #fff;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* ==========================================================================
+   Right Panel: Results & Clinical CDS Reports
+   ========================================================================== */
+.pgx-results-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Conflict Alert Box */
+.pgx-conflict-banner {
+  background: var(--pgx-critical-bg);
+  border: 1px solid var(--pgx-critical-border);
+  border-radius: var(--pgx-radius-md);
+  padding: 16px 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  animation: pulseCritical 3s infinite ease-in-out;
+}
+
+@keyframes pulseCritical {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 0 16px 2px rgba(239, 68, 68, 0.3); }
+}
+
+.pgx-conflict-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.pgx-conflict-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fca5a5;
+  margin: 0 0 4px 0;
+}
+
+.pgx-conflict-desc {
+  font-size: 13px;
+  color: #fecaca;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.pgx-conflict-action {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.25);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* Diplotype / Phenotype Matrix Table */
+.pgx-diplotype-card {
+  background: var(--pgx-bg-card);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-lg);
+  padding: 20px 24px;
+  backdrop-filter: blur(16px);
+}
+
+.pgx-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.pgx-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--pgx-text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--pgx-border);
+}
+
+.pgx-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--pgx-text-main);
+}
+
+.pgx-gene-tag {
+  font-weight: 700;
+  color: #a5b4fc;
+}
+
+.pgx-diplotype-tag {
+  font-family: var(--mono);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--pgx-border);
+}
+
+.pgx-pheno-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--pgx-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pheno-pm { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+.pheno-im { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+.pheno-nm { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+.pheno-rm, .pheno-um { background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); }
+.pheno-pos { background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid #ef4444; }
+
+/* ==========================================================================
+   Recommendation Cards
+   ========================================================================== */
+.pgx-rec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pgx-rec-card {
+  background: var(--pgx-bg-card);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--pgx-shadow);
+  transition: all 0.25s ease;
+  backdrop-filter: blur(16px);
+}
+
+.pgx-rec-card.urgency-1 {
+  border-left: 5px solid var(--pgx-critical);
+}
+
+.pgx-rec-card.urgency-2 {
+  border-left: 5px solid var(--pgx-warning);
+}
+
+.pgx-rec-card.urgency-3 {
+  border-left: 5px solid var(--pgx-info);
+}
+
+.pgx-rec-card.urgency-4 {
+  border-left: 5px solid var(--pgx-success);
+}
+
+.pgx-rec-header {
+  padding: 18px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--pgx-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pgx-rec-drug-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.pgx-rec-drug-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.pgx-rec-gene-pill {
+  font-size: 13px;
+  color: var(--pgx-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 10px;
+  border-radius: var(--pgx-radius-sm);
+  border: 1px solid var(--pgx-border);
+}
+
+.pgx-rec-action-badge {
+  padding: 6px 14px;
+  border-radius: var(--pgx-radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.act-critical {
+  background: var(--pgx-critical-bg);
+  color: #f87171;
+  border: 1px solid var(--pgx-critical-border);
+}
+
+.act-warning {
+  background: var(--pgx-warning-bg);
+  color: #fbbf24;
+  border: 1px solid var(--pgx-warning-border);
+}
+
+.act-standard {
+  background: var(--pgx-success-bg);
+  color: #34d399;
+  border: 1px solid var(--pgx-success-border);
+}
+
+.pgx-rec-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pgx-rec-statement {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: var(--pgx-radius-md);
+  padding: 16px 20px;
+  border: 1px solid var(--pgx-border);
+}
+
+.pgx-rec-statement h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: var(--pgx-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pgx-rec-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f3f4f6;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pgx-implication-text {
+  font-size: 13px;
+  color: var(--pgx-text-muted);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+/* Evidence Metadata Grid */
+.pgx-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--pgx-radius-md);
+  border: 1px solid var(--pgx-border);
+  font-size: 12px;
+}
+
+.pgx-evidence-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pgx-evidence-label {
+  color: var(--pgx-text-faint);
+  font-size: 11px;
+}
+
+.pgx-evidence-val {
+  color: var(--pgx-text-main);
+  font-weight: 600;
+}
+
+/* Explanation Tabs (Patient vs Clinician vs JSON) */
+.pgx-tabs-header {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--pgx-border);
+  padding-bottom: 8px;
+}
+
+.pgx-tab-btn {
+  background: none;
+  border: none;
+  color: var(--pgx-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--pgx-radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pgx-tab-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pgx-tab-btn.active {
+  color: #fff;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.pgx-tab-content {
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--pgx-radius-sm);
+  border: 1px solid var(--pgx-border);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #e5e7eb;
+}
+
+.pgx-json-block {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #38bdf8;
+  white-space: pre-wrap;
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   Modal Dialog for Guideline Explorer
+   ========================================================================== */
+.pgx-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pgx-modal-card {
+  background: var(--pgx-bg-secondary);
+  border: 1px solid var(--pgx-border);
+  border-radius: var(--pgx-radius-lg);
+  width: 100%;
+  max-width: 850px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--pgx-shadow);
+  overflow: hidden;
+}
+
+.pgx-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--pgx-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pgx-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pgx-close-btn {
+  background: none;
+  border: none;
+  color: var(--pgx-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.pgx-close-btn:hover {
+  color: #fff;
+}

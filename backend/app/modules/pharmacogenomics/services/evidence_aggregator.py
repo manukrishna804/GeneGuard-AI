@@ -1,45 +1,109 @@
 from typing import Any, Dict, List
 
 
-def aggregate_gene_drug_evidence(
-    pair_info: Dict[str, Any],
-    diplotype_info: Dict[str, Any],
-    guideline_info: Dict[str, Any]
+def aggregate_evidence(
+    gene_drug_pair: Dict[str, Any],
+    cpic: Dict[str, Any] | None = None,
+    pharmgkb: Dict[str, Any] | None = None,
+    pharmvar: List[Dict[str, Any]] | None = None,
+    drugbank: Dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     """
-    Stage 7: Aggregate all multi-source evidence into a master structured evidence document per gene-drug pair.
+    Combine evidence from all Module 5 evidence sources
+    into one normalized evidence package.
+
+    Parameters
+    ----------
+    gene_drug_pair:
+        Gene-drug matching result from drug_matcher.py.
+
+    cpic:
+        CPIC guideline result.
+
+    pharmgkb:
+        PharmGKB / ClinPGx evidence.
+
+    pharmvar:
+        PharmVar allele definitions.
+
+    drugbank:
+        DrugBank pharmacology/interaction context.
+
+    Returns
+    -------
+    Unified evidence dictionary.
     """
-    drug_name = pair_info["drug_name"]
-    gene = pair_info["primary_gene"]
-    
-    aggregated = {
-        "gene_drug_pair": {
-            "drug": drug_name,
-            "gene": gene,
-            "secondary_genes": pair_info.get("secondary_genes", []),
-            "therapeutic_area": pair_info.get("therapeutic_area", "General")
+
+    return {
+        "gene_drug_pair": gene_drug_pair,
+
+        "cpic": cpic or {
+            "available": False,
+            "source": "CPIC",
         },
-        "genomic_profile": {
-            "gene": gene,
-            "diplotype": diplotype_info.get("diplotype", "*1/*1"),
-            "allele1": diplotype_info.get("allele1", "*1"),
-            "allele2": diplotype_info.get("allele2", "*1"),
-            "activity_score": diplotype_info.get("activity_score"),
-            "phenotype": diplotype_info.get("phenotype", "Normal Metabolizer"),
-            "phenotype_code": diplotype_info.get("phenotype_code", "NM"),
-            "evidence_alleles": diplotype_info.get("evidence_alleles", [])
+
+        "pharmgkb": pharmgkb or {
+            "available": False,
+            "source": "PharmGKB",
         },
-        "guideline_evidence": {
-            "cpic_recommendation": guideline_info.get("recommendation"),
-            "clinical_implication": guideline_info.get("clinical_implication"),
-            "actionability": guideline_info.get("actionability"),
-            "cpic_evidence_level": guideline_info.get("evidence_level"),
-            "pharmgkb_level": guideline_info.get("pharmgkb_level"),
-            "guideline_source": guideline_info.get("source"),
-            "fda_labeling": guideline_info.get("local_fda"),
-            "specialist_routing": guideline_info.get("specialist", "Clinical Pharmacist"),
-            "requires_clinical_review": guideline_info.get("requires_review", False)
-        }
+
+        "pharmvar": pharmvar or [],
+
+        "drugbank": drugbank or {
+            "available": False,
+            "source": "DrugBank",
+        },
     }
-    
+
+
+def aggregate_multiple_evidence(
+    matched_pairs: List[Dict[str, Any]],
+    cpic_results: Dict[str, Dict[str, Any]] | None = None,
+    pharmgkb_results: Dict[str, Dict[str, Any]] | None = None,
+    pharmvar_results: Dict[str, List[Dict[str, Any]]] | None = None,
+    drugbank_results: Dict[str, Dict[str, Any]] | None = None,
+) -> List[Dict[str, Any]]:
+    """
+    Aggregate evidence for multiple gene-drug pairs.
+
+    The dictionaries use a simple key:
+
+        GENE:DRUG
+
+    Example:
+
+        CYP2C19:Clopidogrel
+    """
+
+    cpic_results = cpic_results or {}
+    pharmgkb_results = pharmgkb_results or {}
+    pharmvar_results = pharmvar_results or {}
+    drugbank_results = drugbank_results or {}
+
+    aggregated: List[Dict[str, Any]] = []
+
+    for pair in matched_pairs:
+
+        gene = pair.get("gene")
+        drug = pair.get("drug")
+
+        if not gene or not drug:
+            continue
+
+        key = f"{gene}:{drug}"
+
+        evidence = aggregate_evidence(
+            gene_drug_pair=pair,
+
+            cpic=cpic_results.get(key),
+
+            pharmgkb=pharmgkb_results.get(key),
+
+            pharmvar=pharmvar_results.get(key),
+
+            drugbank=drugbank_results.get(key),
+        )
+
+        aggregated.append(evidence)
+
     return aggregated
