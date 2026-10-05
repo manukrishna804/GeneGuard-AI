@@ -1,4 +1,5 @@
 ##fileformat=VCFv4.2
 ##source=GeneGuard-Module4-Compound-Test
+##INFO=<ID=GENE,Number=1,Type=String,Description="Gene symbol">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	PARENT2
-chr7	117530975	.	G	A	.	PASS	.	GT	0/1
+chr7	117530975	.	G	A	.	PASS	GENE=CFTR	GT	0/1

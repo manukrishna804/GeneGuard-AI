@@ -10,14 +10,19 @@ def parse_vcf(file_path: str | Path) -> List[GeneticVariant]:
     """
     Parse a VCF file and extract basic variant information.
 
-    This parser currently focuses on:
+    Extracted information:
     - chromosome
     - position
     - reference allele
     - alternate allele
     - genotype / zygosity
+    - gene name when available in the INFO field
 
-    Annotation such as gene name, disease, ClinVar classification,
+    Gene annotation can be provided in the VCF INFO field using:
+
+        GENE=CFTR
+
+    Other annotation such as disease, ClinVar classification,
     and inheritance will be handled in later stages.
     """
 
@@ -72,6 +77,29 @@ def parse_vcf(file_path: str | Path) -> List[GeneticVariant]:
             reference = columns[3]
             alternate = columns[4]
 
+            # ---------------------------------------------------------
+            # Extract gene annotation from INFO field
+            # ---------------------------------------------------------
+
+            gene = "UNKNOWN"
+
+            info = columns[7]
+
+            if info != ".":
+                for info_field in info.split(";"):
+
+                    if info_field.startswith("GENE="):
+
+                        gene_value = info_field.split(
+                            "=",
+                            1
+                        )[1].strip()
+
+                        if gene_value:
+                            gene = gene_value
+
+                        break
+
             genotype = None
 
             # FORMAT + sample column
@@ -81,6 +109,7 @@ def parse_vcf(file_path: str | Path) -> List[GeneticVariant]:
                 sample_fields = columns[9].split(":")
 
                 if "GT" in format_fields:
+
                     gt_index = format_fields.index("GT")
 
                     if gt_index < len(sample_fields):
@@ -98,7 +127,7 @@ def parse_vcf(file_path: str | Path) -> List[GeneticVariant]:
                 continue
 
             variant = GeneticVariant(
-                gene="UNKNOWN",
+                gene=gene,
                 chromosome=chromosome,
                 position=position,
                 reference=reference,

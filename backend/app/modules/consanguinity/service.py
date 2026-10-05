@@ -52,7 +52,20 @@ def assess_offspring_risk_from_vcfs(
     )
 
     # ---------------------------------------------------------
-    # 4. Keep only risk-relevant variants
+    # 4. Preserve annotated variants for compound
+    #    heterozygous candidate detection.
+    #
+    #    Compound candidates are potential findings and should
+    #    not depend on the variant passing the definitive-risk
+    #    filter.
+    # ---------------------------------------------------------
+
+    annotated_parent1_variants = parent1_variants
+    annotated_parent2_variants = parent2_variants
+
+    # ---------------------------------------------------------
+    # 5. Keep only risk-relevant variants for definitive
+    #    Mendelian risk calculation.
     # ---------------------------------------------------------
 
     parent1_variants = filter_risk_relevant_variants(
@@ -64,7 +77,7 @@ def assess_offspring_risk_from_vcfs(
     )
 
     # ---------------------------------------------------------
-    # 5. Calculate shared-variant offspring risks
+    # 6. Calculate shared-variant offspring risks
     # ---------------------------------------------------------
 
     risks = calculate_shared_variant_risks(
@@ -73,13 +86,17 @@ def assess_offspring_risk_from_vcfs(
     )
 
     # ---------------------------------------------------------
-    # 6. Build overall assessment
+    # 7. Build overall assessment.
+    #
+    #    The builder receives the original annotated variants
+    #    for compound-heterozygous candidate detection, while
+    #    risk calculations above use only filtered variants.
     # ---------------------------------------------------------
 
     return build_assessment_response(
         risks,
         consanguinity,
         family_history,
-        parent1_variants,
-        parent2_variants,
+        annotated_parent1_variants,
+        annotated_parent2_variants,
     )
