@@ -3,17 +3,10 @@ from typing import Any, Dict, Optional
 import httpx
 
 
-# ============================================================
-# CPIC / ClinPGx API
-# ============================================================
-
 CPIC_BASE_URL = "https://api.cpicpgx.org/v1"
 
 
 class CPICService:
-    """
-    Client for retrieving CPIC/ClinPGx recommendations.
-    """
 
     def __init__(self, timeout: float = 10.0):
         self.timeout = timeout
@@ -27,7 +20,7 @@ class CPICService:
         guideline_id: Optional[str] = None,
     ) -> Dict[str, Any]:
 
-        result: Dict[str, Any] = {
+        result = {
             "gene": gene,
             "drug": drug,
             "guideline_id": guideline_id,
@@ -41,50 +34,25 @@ class CPICService:
             "raw_data": None,
         }
 
-        # ----------------------------------------------------
-        # Build ClinPGx recommendation_view filters
-        # ----------------------------------------------------
+        # ---------------------------------------------
+        # Build the same filters we tested in Swagger
+        # ---------------------------------------------
 
         params = {
             "drugname": f"eq.{drug.lower()}",
         }
 
-        # JSON containment filter:
-        #
-        # {"CYP2C19": "Poor Metabolizer"}
-        #
-        # becomes:
-        #
-        # cs.{"CYP2C19":"Poor Metabolizer"}
-        #
         if phenotype:
-            lookup_json = (
-                f'{{"{gene}":"{phenotype}"}}'
+            params["lookupkey"] = (
+                f'cs.{{"{gene}":"{phenotype}"}}'
             )
 
-            params["lookupkey"] = f"cs.{lookup_json}"
-
-        # Guideline name is optional because not every caller
-        # will have a guideline identifier.
-        if gene and drug:
-            params["guidelinename"] = (
-                f"eq.{gene} and {gene} and {drug}"
-            )
-
-        # Population is optional because clinical context may
-        # not always be available.
-        #
-        # Use ilike because the API data can contain trailing
-        # whitespace, for example:
-        #
-        # "CVI ACS PCI "
-        #
         if population:
             params["population"] = f"ilike.*{population}*"
 
-        # ----------------------------------------------------
-        # Make API request
-        # ----------------------------------------------------
+        # ---------------------------------------------
+        # Request ClinPGx
+        # ---------------------------------------------
 
         url = f"{CPIC_BASE_URL}/recommendation_view"
 
@@ -106,23 +74,20 @@ class CPICService:
             result["error"] = str(exc)
             return result
 
-        # ----------------------------------------------------
-        # Process response
-        # ----------------------------------------------------
+        # ---------------------------------------------
+        # No recommendation found
+        # ---------------------------------------------
 
         if not data:
             return result
 
-        # ClinPGx may return multiple recommendations when
-        # population is not specified.
-        #
-        # For now, we keep all returned records in raw_data.
-        # The recommendation engine can decide how to handle
-        # multiple clinical contexts.
+        # ---------------------------------------------
+        # Recommendation found
+        # ---------------------------------------------
+
         result["available"] = True
         result["raw_data"] = data
 
-        # Use the first result for the simple fields.
         first = data[0]
 
         result["guideline_id"] = (
@@ -160,9 +125,6 @@ async def fetch_cpic_guideline(
     population: Optional[str] = None,
     guideline_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """
-    Convenience function used by the Module 5 pipeline.
-    """
 
     service = CPICService()
 
