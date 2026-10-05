@@ -55,7 +55,10 @@ class GeneticVariant(BaseModel):
     Structured representation of a variant belonging to one parent.
     """
 
-    gene: str = Field(..., description="Gene symbol, e.g. HBB")
+    gene: str = Field(
+        ...,
+        description="Gene symbol, e.g. HBB"
+    )
 
     chromosome: Optional[str] = None
     position: Optional[int] = None
@@ -119,7 +122,10 @@ class FamilyHistoryEntry(BaseModel):
 
     relationship: str = Field(
         ...,
-        description="Relationship to the parent, e.g. sibling, uncle, grandparent"
+        description=(
+            "Relationship to the parent, e.g. "
+            "sibling, uncle, grandparent"
+        )
     )
 
     sex: ParentSex = ParentSex.UNKNOWN
@@ -148,7 +154,9 @@ class ConsanguinityInfo(BaseModel):
 
     description: Optional[str] = Field(
         default=None,
-        description="Additional description if relationship is 'other'"
+        description=(
+            "Additional description if relationship is 'other'"
+        )
     )
 
 
@@ -158,8 +166,8 @@ class ConsanguinityInfo(BaseModel):
 
 class PreviousChildHistory(BaseModel):
     """
-    Information about a previous child relevant to inherited-condition
-    assessment.
+    Information about a previous child relevant to
+    inherited-condition assessment.
     """
 
     condition: Optional[str] = None
@@ -234,49 +242,156 @@ class OffspringRiskResult(BaseModel):
 
 
 # ============================================================
+# INTERVENTION / PRECONCEPTION RECOMMENDATION
+# ============================================================
+
+class InterventionRecommendation(BaseModel):
+    """
+    Evidence-aware preconception or clinical follow-up option.
+
+    These recommendations are intended for decision support and
+    are not medical prescriptions.
+    """
+
+    option: str
+
+    reason: str
+
+
+class InterventionAssessment(BaseModel):
+    """
+    Structured decision-support information generated from
+    an identified genetic risk.
+    """
+
+    condition: str
+
+    inheritance: str
+
+    classification: str
+
+    recommendations: List[InterventionRecommendation] = Field(
+        default_factory=list
+    )
+
+    disclaimer: str
+
+
+# ============================================================
 # COMPLETE MODULE 4 RESPONSE
 # ============================================================
 
 class OffspringRiskAssessmentResponse(BaseModel):
+    """
+    Complete Module 4 offspring genetic risk assessment.
+    """
+
     assessment_id: Optional[str] = None
+
     status: str
-    risks: List[OffspringRiskResult] = Field(default_factory=list)
+
+    risks: List[OffspringRiskResult] = Field(
+        default_factory=list
+    )
+
+    interventions: List[InterventionAssessment] = Field(
+        default_factory=list,
+        description=(
+            "Evidence-aware preconception and clinical follow-up "
+            "options associated with identified genetic risks"
+        ),
+    )
+
     shared_risk_count: int = 0
+
     uncertain_variant_count: int = 0
 
     compound_heterozygous_candidates: List[str] = Field(
         default_factory=list,
-        description="Potential same-gene/different-variant pairs requiring further analysis"
+        description=(
+            "Potential same-gene/different-variant pairs "
+            "requiring further analysis"
+        ),
     )
 
     consanguinity_context: Optional[str] = None
 
     family_history_context: List[str] = Field(
         default_factory=list,
-        description="Structured summaries of reported family-history information"
+        description=(
+            "Structured summaries of reported "
+            "family-history information"
+        ),
     )
 
-    limitations: List[str] = Field(default_factory=list)
+    limitations: List[str] = Field(
+        default_factory=list
+    )
+
+
+# ============================================================
+# INTERNAL VARIANT RISK RESULT
+# ============================================================
+
 class VariantRiskResult(BaseModel):
+    """
+    Internal variant-level risk result used by the
+    Module 4 risk calculation pipeline.
+    """
+
     chromosome: Optional[str] = None
+
     position: Optional[int] = None
+
     reference: Optional[str] = None
+
     alternate: Optional[str] = None
 
+    # --------------------------------------------------------
     # Variant annotation
-    gene: Optional[str] = None
-    variant_name: Optional[str] = None
-    condition: Optional[str] = None
-    inheritance: Optional[str] = None
-    classification: VariantClassification = VariantClassification.UNKNOWN
-    evidence_sources: List[str] = Field(default_factory=list)
+    # --------------------------------------------------------
 
+    gene: Optional[str] = None
+
+    variant_name: Optional[str] = None
+
+    condition: Optional[str] = None
+
+    inheritance: Optional[str] = None
+
+    classification: VariantClassification = (
+        VariantClassification.UNKNOWN
+    )
+
+    evidence_sources: List[str] = Field(
+        default_factory=list
+    )
+
+    # --------------------------------------------------------
     # Parent genetic status
+    # --------------------------------------------------------
+
     parent1_status: str
+
     parent2_status: str
 
+    # --------------------------------------------------------
     # Offspring probability
-    affected_probability: float = Field(ge=0.0, le=1.0)
-    carrier_probability: float = Field(ge=0.0, le=1.0)
-    unaffected_probability: float = Field(ge=0.0, le=1.0)
+    # --------------------------------------------------------
+
+    affected_probability: float = Field(
+        ge=0.0,
+        le=1.0
+    )
+
+    carrier_probability: float = Field(
+        ge=0.0,
+        le=1.0
+    )
+
+    unaffected_probability: float = Field(
+        ge=0.0,
+        le=1.0
+    )
+
     explanation: Optional[str] = None

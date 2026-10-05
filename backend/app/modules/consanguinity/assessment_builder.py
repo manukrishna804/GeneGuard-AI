@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List
 
 from .compound_heterozygous import find_same_gene_different_variants
+from .intervention_engine import build_intervention_recommendations
 from .schemas import (
     ConsanguinityInfo,
     FamilyHistoryEntry,
@@ -175,6 +176,20 @@ def build_assessment_response(
                 )
 
             family_history_context.append(summary)
+        # ---------------------------------------------------------
+    # Preconception intervention recommendations
+    # ---------------------------------------------------------
+
+    interventions = []
+
+    for risk in risks:
+        intervention = build_intervention_recommendations(
+            condition=risk.condition,
+            inheritance=risk.inheritance,
+            classification=risk.classification.value,
+        )
+
+        interventions.append(intervention)
 
     # ---------------------------------------------------------
     # Build final assessment
@@ -183,6 +198,7 @@ def build_assessment_response(
     return OffspringRiskAssessmentResponse(
         status="completed",
         risks=offspring_risks,
+        interventions=interventions,
         shared_risk_count=len(offspring_risks),
         uncertain_variant_count=0,
         compound_heterozygous_candidates=compound_candidates,
