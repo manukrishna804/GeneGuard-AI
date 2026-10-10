@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GeneGuard AI - Whole Exome Sequencing Suite</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Configuration Verbatim -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-secondary-fixed-variant": "#444749",
+            "secondary": "#5c5f61",
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed": "#e0e3e5",
+            "on-secondary-fixed": "#191c1e",
+            "error": "#ba1a1a",
+            "surface-bright": "#f8f9ff",
+            "on-error": "#ffffff",
+            "error-container": "#ffdad6",
+            "inverse-primary": "#6bd8cb",
+            "on-tertiary-fixed-variant": "#773215",
+            "surface-dim": "#cbdbf5",
+            "surface-container-highest": "#d3e4fe",
+            "tertiary-container": "#b05e3d",
+            "tertiary": "#924628",
+            "primary-container": "#008378",
+            "on-secondary-container": "#626567",
+            "outline": "#6d7a77",
+            "tertiary-fixed": "#ffdbce",
+            "on-primary-container": "#f4fffc",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed": "#00201d",
+            "surface-tint": "#006a61",
+            "on-primary": "#ffffff",
+            "background": "#f8f9ff",
+            "primary-fixed-dim": "#6bd8cb",
+            "inverse-surface": "#213145",
+            "on-surface": "#0b1c30",
+            "surface-container-high": "#dce9ff",
+            "on-surface-variant": "#3d4947",
+            "surface": "#f8f9ff",
+            "tertiary-fixed-dim": "#ffb59a",
+            "surface-container": "#e5eeff",
+            "on-tertiary": "#ffffff",
+            "primary-fixed": "#89f5e7",
+            "on-primary-fixed-variant": "#005049",
+            "primary": "#00685f",
+            "on-tertiary-container": "#fffbff",
+            "secondary-fixed-dim": "#c4c7c9",
+            "on-tertiary-fixed": "#370e00",
+            "surface-variant": "#d3e4fe",
+            "secondary-container": "#e0e3e5",
+            "on-background": "#0b1c30",
+            "inverse-on-surface": "#eaf1ff",
+            "outline-variant": "#bcc9c6",
+            "surface-container-low": "#eff4ff",
+            "on-error-container": "#93000a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "base": "4px",
+            "2xl": "48px",
+            "gutter": "24px",
+            "container-max": "1280px",
+            "xl": "32px",
+            "xs": "4px",
+            "md": "16px",
+            "lg": "24px",
+            "sm": "8px"
+          },
+          "fontFamily": {
+            "body-md": ["Inter"],
+            "headline-xl": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "code-md": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "body-lg": ["Inter"]
+          },
+          "fontSize": {
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "code-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased min-h-screen flex flex-col">
+<!-- ========================================================================= -->
+<!-- SHARED COMPONENT 1: TopNavBar                                             -->
+<!-- ========================================================================= -->
+<header class="fixed top-0 w-full z-50 flex items-center justify-between px-lg h-16 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline">
+<!-- Left: Brand Logo & Global Search -->
+<div class="flex items-center gap-lg">
+<div class="flex items-center gap-xs cursor-pointer">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="dna" style="font-variation-settings: 'FILL' 1;">strikethrough_s</span>
+<span class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed tracking-tight">GeneGuard AI</span>
+</div>
+<!-- Search Bar on Left -->
+<div class="relative w-80 hidden lg:block">
+<span class="absolute inset-y-0 left-0 flex items-center pl-sm pointer-events-none text-on-surface-variant">
+<span class="material-symbols-outlined text-xl" data-icon="search">search</span>
+</span>
+<input class="w-full pl-10 pr-sm py-1.5 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-on-surface" placeholder="Search gene, variant (HGVS), or patient ID..." type="text"/>
+</div>
+</div>
+<!-- Center/Right context: Clinician & Actions -->
+<div class="flex items-center gap-md">
+<!-- Fast Patient Lookup Badge -->
+<div class="hidden sm:flex items-center gap-xs px-sm py-1 bg-surface-container rounded-lg border border-outline-variant text-body-sm">
+<span class="material-symbols-outlined text-primary text-lg" data-icon="badge">badge</span>
+<span class="text-on-surface font-medium">Eleanor Vance</span>
+<span class="text-secondary text-xs">(#GG-8921)</span>
+</div>
+<div class="flex items-center gap-xs">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-lg relative cursor-pointer active:opacity-80" title="Notifications">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-container-highest transition-colors rounded-lg cursor-pointer active:opacity-80" title="Settings">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<div class="h-6 w-px bg-outline-variant hidden sm:block"></div>
+<!-- Clinician Profile -->
+<div class="flex items-center gap-sm">
+<img alt="Clinician profile" class="w-9 h-9 rounded-full object-cover border border-outline-variant" data-alt="Close up professional portrait of Dr. Marcus Thorne, a clinical geneticist wearing a crisp medical coat in a sterile modern hospital laboratory. Soft natural ambient lighting illuminates the scene with safe clinical tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7035javUZlrqbmoCXTbG3Ig8nVXGz5sTv9HG8J3W4ylngtHLu-_M_vzcpKnLdFp8oczNccx3yl0lmtiKaA5tqzoJ0kYzmDnZwMpETl6rmsa-_aGWqcf1etyLngyZMUUMPCYYZ-pReE0gCbAfEtGedVe014MKOSmJ1VhfvKRosFBdz0l4Mhbw9LtEvSxVdC7M-QXFIVNmZYYvqdVBDDFWIcbCQKwnlF-da6xBCsnbDvTLJ7azit3pK"/>
+<div class="hidden md:flex flex-col text-left">
+<span class="text-xs font-semibold text-on-surface leading-tight">Dr. Marcus Thorne</span>
+<span class="text-[11px] text-secondary">FACMG Clinical Director</span>
+</div>
+</div>
+<!-- Trailing Primary Action -->
+<button class="bg-primary hover:bg-primary-container text-on-primary font-medium text-body-sm px-md py-2 rounded-lg flex items-center gap-xs shadow-sm transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-base" data-icon="play_circle">play_circle</span>
+<span>Run Analysis</span>
+</button>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- SHARED COMPONENT 2: SideNavBar                                            -->
+<!-- ========================================================================= -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 flex flex-col p-md bg-surface dark:bg-surface-dim border-r border-outline-variant dark:border-outline z-40 overflow-y-auto">
+<!-- Header Title & Subtext -->
+<div class="pb-md mb-xs border-b border-outline-variant">
+<div class="flex items-center gap-xs mb-1">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="hub">hub</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">Clinical Modules</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Diagnostic Suite</p>
+</div>
+<!-- Modules List (Active = Genetic Disorder ID / WES Analysis) -->
+<nav class="flex flex-col gap-1 mt-md">
+<!-- 1. Genetic Disorder ID (ACTIVE TAB FOR WES PIPELINE) -->
+<a class="flex items-center gap-sm px-sm py-2.5 bg-primary-container dark:bg-on-primary-fixed-variant text-on-primary-container dark:text-primary-fixed font-semibold rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dna" style="font-variation-settings: 'FILL' 1;">strikethrough_s</span>
+<span class="font-label-md text-label-md">Genetic Disorder ID</span>
+</a>
+<!-- 2. Facial Phenotype -->
+<a class="flex items-center gap-sm px-sm py-2.5 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:bg-surface-container dark:hover:bg-surface-container-highest rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="face">face</span>
+<span class="font-label-md text-label-md">Facial Phenotype</span>
+</a>
+<!-- 3. Complex Disease Risk -->
+<a class="flex items-center gap-sm px-sm py-2.5 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:bg-surface-container dark:hover:bg-surface-container-highest rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-label-md text-label-md">Complex Disease Risk</span>
+</a>
+<!-- 4. Consanguinity Risk -->
+<a class="flex items-center gap-sm px-sm py-2.5 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:bg-surface-container dark:hover:bg-surface-container-highest rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="family_history">family_history</span>
+<span class="font-label-md text-label-md">Consanguinity Risk</span>
+</a>
+<!-- 5. Pharmacogenomics -->
+<a class="flex items-center gap-sm px-sm py-2.5 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:bg-surface-container dark:hover:bg-surface-container-highest rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="medication">medication</span>
+<span class="font-label-md text-label-md">Pharmacogenomics</span>
+</a>
+<!-- 6. Family Pedigree -->
+<a class="flex items-center gap-sm px-sm py-2.5 text-on-surface-variant dark:text-on-secondary-fixed-variant hover:bg-surface-container dark:hover:bg-surface-container-highest rounded-lg transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="font-label-md text-label-md">Family Pedigree</span>
+</a>
+</nav>
+<!-- Sub-navigation Pills for the WES Context -->
+<div class="mt-lg pt-md border-t border-outline-variant">
+<span class="text-[11px] font-bold text-secondary uppercase tracking-widest block mb-2 px-1">Exome Workflow</span>
+<div class="flex flex-col gap-1 text-xs">
+<div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant hover:bg-surface-container-low cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="upload_file">upload_file</span> WES Upload</span>
+<span class="material-symbols-outlined text-xs text-primary" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant hover:bg-surface-container-low cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="speed">speed</span> Quality Metrics</span>
+<span class="text-[10px] bg-primary-container/20 text-primary font-bold px-1 rounded">124x</span>
+</div>
+<div class="flex items-center justify-between px-2 py-1.5 rounded bg-surface-container-high text-primary font-semibold cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="pageview">pageview</span> Variant Browser</span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+</div>
+<div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant hover:bg-surface-container-low cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="query_stats">query_stats</span> Polygenic Risk Score</span>
+</div>
+<div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant hover:bg-surface-container-low cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="health_and_safety">health_and_safety</span> Clinical Interpretation</span>
+</div>
+<div class="flex items-center justify-between px-2 py-1.5 rounded text-on-surface-variant hover:bg-surface-container-low cursor-pointer">
+<span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm" data-icon="picture_as_pdf">picture_as_pdf</span> PDF Report</span>
+</div>
+</div>
+</div>
+<!-- Bottom System Status -->
+<div class="mt-auto pt-md border-t border-outline-variant">
+<div class="p-2 bg-surface-container-low rounded border border-outline-variant text-[11px] text-on-surface-variant">
+<div class="flex items-center justify-between font-medium">
+<span>GATK Engine v4.4</span>
+<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+</div>
+<p class="text-[10px] text-secondary mt-0.5">Reference: GRCh38.p14</p>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- SHARED COMPONENT 3: TopAppBar (Patient Context)                           -->
+<!-- ========================================================================= -->
+<div class="flex items-center justify-between px-lg py-sm ml-64 mt-16 bg-surface-container-low dark:bg-surface-container border-b border-outline-variant">
+<div class="flex items-center gap-md">
+<div class="w-9 h-9 rounded-full bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface leading-tight">Patient Context</h2>
+<span class="bg-primary/10 text-primary text-xs font-semibold px-2 py-0.5 rounded-full">Exome Primary</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant">Eleanor Vance • 34y Female • DOB: 14-Oct-1989 • MRN: GG-8921-WES</p>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button class="flex items-center gap-xs px-3 py-1.5 text-body-sm font-medium text-secondary hover:text-primary transition-opacity cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="share">share</span>
+<span class="hidden sm:inline">Share Case</span>
+</button>
+<button class="flex items-center gap-xs px-3 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-sm font-medium text-primary hover:bg-surface-container transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-lg" data-icon="download">download</span>
+<span>Download Report</span>
+</button>
+</div>
+</div>
+<!-- ========================================================================= -->
+<!-- MAIN WORKSPACE CONTENT CANVAS (ml-64)                                      -->
+<!-- ========================================================================= -->
+<main class="ml-64 flex-1 p-lg bg-background flex flex-col gap-lg pb-16">
+<!-- Header Banner: Analysis Pipeline & Run Parameters -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex flex-col lg:flex-row justify-between lg:items-center gap-md">
+<div>
+<div class="flex items-center gap-2">
+<h1 class="font-headline-lg text-headline-lg font-bold text-on-surface">Whole Exome Sequencing (WES) Analysis &amp; Variant Curation</h1>
+<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-container text-on-primary-container flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="verified">verified</span> Pipeline Completed
+          </span>
+</div>
+<p class="text-body-sm text-secondary mt-1 flex flex-wrap items-center gap-x-2">
+<span class="font-semibold text-on-surface">Pipeline:</span> BWA-MEM 0.7.17 → GATK HaplotypeCaller 4.4 → Ensembl VEP v110 → ClinVar 2024b Release
+          <span class="text-outline-variant">|</span>
+<span>Sample: PBMC-DNA-24-098</span>
+</p>
+</div>
+<div class="flex items-center gap-4 bg-surface-container-low px-4 py-2.5 rounded-lg border border-outline-variant text-body-sm">
+<div>
+<span class="block text-[11px] uppercase tracking-wider text-secondary font-semibold">Mean Depth</span>
+<span class="font-bold text-primary font-headline-md text-headline-md">124x</span>
+<span class="text-[11px] text-secondary ml-1">(98.6% &gt; 30x)</span>
+</div>
+<div class="h-8 w-px bg-outline-variant"></div>
+<div>
+<span class="block text-[11px] uppercase tracking-wider text-secondary font-semibold">Target Capture</span>
+<span class="font-bold text-on-surface font-headline-md text-headline-md">21,438</span>
+<span class="text-[11px] text-secondary ml-1">genes (Agilent v8)</span>
+</div>
+<div class="h-8 w-px bg-outline-variant"></div>
+<div>
+<span class="block text-[11px] uppercase tracking-wider text-secondary font-semibold">Filtering</span>
+<span class="font-bold text-on-surface font-headline-md text-headline-md">24</span>
+<span class="text-[11px] text-secondary ml-1">from 4.2M raw</span>
+</div>
+</div>
+</section>
+<!-- Top Metrics Banner: 4 Clinical Stat Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-md">
+<!-- Card 1: Pathogenic -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between hover:border-error transition-colors">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Pathogenic / Likely Pathogenic</span>
+<span class="p-1.5 bg-error-container text-on-error-container rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+</span>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-error font-bold">2</span>
+<span class="text-body-sm text-secondary font-medium">variants detected</span>
+</div>
+<div class="flex gap-1.5 mt-2">
+<span class="px-2 py-0.5 bg-error-container text-on-error-container text-xs font-semibold rounded">BRCA1</span>
+<span class="px-2 py-0.5 bg-error-container text-on-error-container text-xs font-semibold rounded">LDLR</span>
+</div>
+</div>
+</div>
+<!-- Card 2: VUS -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between hover:border-tertiary transition-colors">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Variants of Uncertain Sig.</span>
+<span class="p-1.5 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="help">help</span>
+</span>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-tertiary font-bold">4</span>
+<span class="text-body-sm text-secondary font-medium">under curation</span>
+</div>
+<div class="flex gap-1.5 mt-2">
+<span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-semibold rounded">MSH2</span>
+<span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed-variant text-xs font-semibold rounded">KCNQ1</span>
+<span class="px-2 py-0.5 bg-secondary-fixed text-on-secondary-fixed text-xs font-semibold rounded">+2 more</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Benign / Likely Benign -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Benign / Likely Benign</span>
+<span class="p-1.5 bg-surface-container-high text-primary rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="check_circle">check_circle</span>
+</span>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-primary font-bold">18</span>
+<span class="text-body-sm text-secondary font-medium">annotated &amp; archived</span>
+</div>
+<p class="text-xs text-secondary mt-2">High gnomAD AF (&gt;1%) concordant with ACMG BA1</p>
+</div>
+</div>
+<!-- Card 4: Polygenic Risk Scores -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Polygenic Risk (PRS)</span>
+<span class="p-1.5 bg-surface-container-highest text-primary rounded-lg">
+<span class="material-symbols-outlined text-lg" data-icon="insights">insights</span>
+</span>
+</div>
+<div class="mt-3">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md text-headline-md text-error font-bold">Elevated</span>
+<span class="text-body-sm text-secondary">Cardiovascular</span>
+</div>
+<p class="text-xs text-secondary mt-1">94th percentile for Coronary Artery Disease; T2D Moderate (68th)</p>
+</div>
+</div>
+</section>
+<!-- Bento Grid Section: Variant Browser Table + Evidence Drawer -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg">
+<!-- Left Column: Interactive Variant Classification Table (7 Cols) -->
+<div class="xl:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col overflow-hidden">
+<!-- Table Header & Controls -->
+<div class="p-md border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-sm bg-surface-container-low">
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">Candidate Clinical Variants</h3>
+<span class="text-xs font-semibold px-2 py-0.5 bg-surface-container-highest rounded text-on-surface">Filter: Rare Coding (AF &lt; 0.01)</span>
+</div>
+<p class="text-body-sm text-secondary">24 prioritized variants matching patient clinical indication &amp; ACMG secondary findings</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-2.5 py-1 text-body-sm border border-outline-variant bg-surface-container-lowest rounded hover:bg-surface-container text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="filter_list">filter_list</span> Filter
+            </button>
+<button class="px-2.5 py-1 text-body-sm border border-outline-variant bg-surface-container-lowest rounded hover:bg-surface-container text-on-surface flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span> Columns
+            </button>
+</div>
+</div>
+<!-- The Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left text-body-sm border-collapse">
+<thead>
+<tr class="bg-surface-container border-b border-outline-variant text-[11px] font-bold text-secondary uppercase tracking-wider">
+<th class="p-sm pl-md">Gene &amp; OMIM</th>
+<th class="p-sm">Genomic Variant (HGVS)</th>
+<th class="p-sm">Consequence</th>
+<th class="p-sm">ClinVar Class</th>
+<th class="p-sm">In Silico</th>
+<th class="p-sm">gnomAD AF</th>
+<th class="p-sm pr-md text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1: BRCA1 (Currently Selected) -->
+<tr class="bg-primary/5 hover:bg-primary/10 transition-colors border-l-4 border-l-primary">
+<td class="p-sm pl-md">
+<div class="font-bold text-on-surface">BRCA1</div>
+<div class="text-[11px] text-secondary font-code-md">OMIM: 113705</div>
+</td>
+<td class="p-sm">
+<div class="font-code-md text-xs font-semibold text-on-surface">c.5266dupC</div>
+<div class="text-[11px] text-secondary font-code-md">p.Gln1756Profs*74</div>
+</td>
+<td class="p-sm">
+<span class="px-2 py-0.5 rounded text-xs bg-surface-container font-medium text-on-surface">Frameshift</span>
+<div class="text-[10px] text-secondary">Heterozygous</div>
+</td>
+<td class="p-sm">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-error-container text-on-error-container">
+<span class="material-symbols-outlined text-xs" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span> Pathogenic
+                  </span>
+</td>
+<td class="p-sm">
+<div class="text-xs font-medium text-error">CADD 34.0</div>
+<div class="text-[10px] text-secondary">PVS1 Met</div>
+</td>
+<td class="p-sm font-code-md text-xs text-on-surface">
+                  0.00012
+                </td>
+<td class="p-sm pr-md text-right">
+<button class="px-2 py-1 bg-primary text-on-primary text-xs font-semibold rounded hover:bg-primary-container shadow-xs">
+                    Curated
+                  </button>
+</td>
+</tr>
+<!-- Row 2: LDLR -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md">
+<div class="font-bold text-on-surface">LDLR</div>
+<div class="text-[11px] text-secondary font-code-md">OMIM: 606945</div>
+</td>
+<td class="p-sm">
+<div class="font-code-md text-xs font-semibold text-on-surface">c.1775G&gt;A</div>
+<div class="text-[11px] text-secondary font-code-md">p.Gly592Glu</div>
+</td>
+<td class="p-sm">
+<span class="px-2 py-0.5 rounded text-xs bg-surface-container font-medium text-on-surface">Missense</span>
+<div class="text-[10px] text-secondary">Heterozygous</div>
+</td>
+<td class="p-sm">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-error-container text-on-error-container">
+<span class="material-symbols-outlined text-xs" data-icon="error" style="font-variation-settings: 'FILL' 1;">error</span> Pathogenic
+                  </span>
+</td>
+<td class="p-sm">
+<div class="text-xs font-medium text-error">REVEL 0.94</div>
+<div class="text-[10px] text-secondary">CADD 32.4</div>
+</td>
+<td class="p-sm font-code-md text-xs text-on-surface">
+                  0.00003
+                </td>
+<td class="p-sm pr-md text-right">
+<button class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface text-xs font-semibold rounded hover:bg-surface-container-high">
+                    View
+                  </button>
+</td>
+</tr>
+<!-- Row 3: MSH2 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md">
+<div class="font-bold text-on-surface">MSH2</div>
+<div class="text-[11px] text-secondary font-code-md">OMIM: 609309</div>
+</td>
+<td class="p-sm">
+<div class="font-code-md text-xs font-semibold text-on-surface">c.942+3A&gt;T</div>
+<div class="text-[11px] text-secondary font-code-md">Splice Region</div>
+</td>
+<td class="p-sm">
+<span class="px-2 py-0.5 rounded text-xs bg-surface-container font-medium text-on-surface">Intronic Splice</span>
+<div class="text-[10px] text-secondary">Heterozygous</div>
+</td>
+<td class="p-sm">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-tertiary-fixed text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined text-xs" data-icon="help">help</span> VUS
+                  </span>
+</td>
+<td class="p-sm">
+<div class="text-xs font-medium text-tertiary">SpliceAI 0.41</div>
+<div class="text-[10px] text-secondary">CADD 18.2</div>
+</td>
+<td class="p-sm font-code-md text-xs text-on-surface">
+                  0.00048
+                </td>
+<td class="p-sm pr-md text-right">
+<button class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface text-xs font-semibold rounded hover:bg-surface-container-high">
+                    Review
+                  </button>
+</td>
+</tr>
+<!-- Row 4: KCNQ1 -->
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="p-sm pl-md">
+<div class="font-bold text-on-surface">KCNQ1</div>
+<div class="text-[11px] text-secondary font-code-md">OMIM: 607542</div>
+</td>
+<td class="p-sm">
+<div class="font-code-md text-xs font-semibold text-on-surface">c.1892C&gt;T</div>
+<div class="text-[11px] text-secondary font-code-md">p.Pro631Leu</div>
+</td>
+<td class="p-sm">
+<span class="px-2 py-0.5 rounded text-xs bg-surface-container font-medium text-on-surface">Missense</span>
+<div class="text-[10px] text-secondary">Heterozygous</div>
+</td>
+<td class="p-sm">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-tertiary-fixed text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined text-xs" data-icon="help">help</span> VUS
+                  </span>
+</td>
+<td class="p-sm">
+<div class="text-xs font-medium text-secondary">AlphaMiss 0.62</div>
+<div class="text-[10px] text-secondary">CADD 21.0</div>
+</td>
+<td class="p-sm font-code-md text-xs text-on-surface">
+                  0.00021
+                </td>
+<td class="p-sm pr-md text-right">
+<button class="px-2 py-1 bg-surface-container border border-outline-variant text-on-surface text-xs font-semibold rounded hover:bg-surface-container-high">
+                    Review
+                  </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Associated Phenotypes Quick Glance Strip -->
+<div class="p-sm px-md bg-surface-container-low border-t border-outline-variant flex items-center justify-between text-xs">
+<div class="flex items-center gap-2 text-secondary">
+<span class="font-semibold text-on-surface">Associated Conditions:</span>
+<span>Hereditary Breast &amp; Ovarian Cancer (HBOC)</span> •
+            <span>Familial Hypercholesterolemia (FH)</span> •
+            <span>Lynch Syndrome</span>
+</div>
+<span class="text-primary font-semibold hover:underline cursor-pointer">View all 24 candidates →</span>
+</div>
+</div>
+<!-- Right Column: Deep-Dive ACMG/AMP Curation Panel (5 Cols) -->
+<div class="xl:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl flex flex-col">
+<!-- Panel Header -->
+<div class="p-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="p-1 bg-primary text-on-primary rounded">
+<span class="material-symbols-outlined text-base" data-icon="biotech">biotech</span>
+</span>
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">ACMG Evidence Curation</h3>
+<p class="text-xs text-secondary">Active Inspection: <strong class="text-on-surface">BRCA1:c.5266dupC</strong></p>
+</div>
+</div>
+<span class="px-2.5 py-1 bg-error-container text-on-error-container text-xs font-bold rounded-full border border-error/20">
+            Pathogenic (Class 5)
+          </span>
+</div>
+<!-- ACMG Rule Badges Engine -->
+<div class="p-md border-b border-outline-variant bg-surface-container-lowest">
+<span class="text-xs font-bold uppercase tracking-wider text-secondary block mb-2">Activated ACMG/AMP Criteria</span>
+<div class="grid grid-cols-2 gap-2">
+<div class="p-2 rounded border border-outline-variant bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="font-code-md text-xs font-bold text-error">PVS1_VeryStrong</span>
+<span class="material-symbols-outlined text-sm text-error" data-icon="check_circle">check_circle</span>
+</div>
+<p class="text-[11px] text-secondary mt-0.5">Null variant (frameshift in BRCA1 where LOF is known disease mechanism).</p>
+</div>
+<div class="p-2 rounded border border-outline-variant bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="font-code-md text-xs font-bold text-primary">PM2_Supporting</span>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="check_circle">check_circle</span>
+</div>
+<p class="text-[11px] text-secondary mt-0.5">Extremely low frequency in gnomAD v4.1 non-cancer cohort (&lt;0.0001).</p>
+</div>
+<div class="p-2 rounded border border-outline-variant bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="font-code-md text-xs font-bold text-primary">PP3_Moderate</span>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="check_circle">check_circle</span>
+</div>
+<p class="text-[11px] text-secondary mt-0.5">Multiple in silico algorithms predict deleterious impact (CADD 34.0).</p>
+</div>
+<div class="p-2 rounded border border-outline-variant bg-surface-container-low">
+<div class="flex items-center justify-between">
+<span class="font-code-md text-xs font-bold text-error">PP5_Strong</span>
+<span class="material-symbols-outlined text-sm text-error" data-icon="check_circle">check_circle</span>
+</div>
+<p class="text-[11px] text-secondary mt-0.5">Reputable clinical laboratory consensus in ClinVar (38 submissions, 0 conflicts).</p>
+</div>
+</div>
+</div>
+<!-- Evidence Tabs & Deep Content -->
+<div class="p-md flex flex-col gap-3">
+<!-- Mini Tab Navigation -->
+<div class="flex border-b border-outline-variant text-xs gap-4 font-medium">
+<button class="pb-2 border-b-2 border-primary text-primary font-bold">Phenotype Match (HPO)</button>
+<button class="pb-2 text-secondary hover:text-on-surface">Population (gnomAD)</button>
+<button class="pb-2 text-secondary hover:text-on-surface">Literature (34 PMIDs)</button>
+</div>
+<!-- Phenotype HPO Match Info -->
+<div class="space-y-2">
+<div class="flex items-center justify-between text-xs bg-surface-container-low p-2 rounded border border-outline-variant">
+<div>
+<span class="font-code-md font-bold text-on-surface">HP:0003002</span>
+<span class="text-secondary ml-1">Breast carcinoma</span>
+</div>
+<span class="font-bold text-error text-[11px]">99.2% Match Rank</span>
+</div>
+<div class="flex items-center justify-between text-xs bg-surface-container-low p-2 rounded border border-outline-variant">
+<div>
+<span class="font-code-md font-bold text-on-surface">HP:0000137</span>
+<span class="text-secondary ml-1">Neoplasm of ovary</span>
+</div>
+<span class="font-bold text-error text-[11px]">98.7% Match Rank</span>
+</div>
+<p class="text-[11px] text-secondary leading-relaxed pt-1">
+              Patient family history indicates maternal aunt diagnosed with early-onset invasive ductal carcinoma at age 42. Findings strongly concordant with Hereditary Breast and Ovarian Cancer syndrome.
+            </p>
+</div>
+<!-- Quick Action Buttons in Curation -->
+<div class="mt-auto pt-2 flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 border border-outline-variant rounded text-xs font-semibold text-secondary hover:bg-surface-container">
+              Re-evaluate Criteria
+            </button>
+<button class="px-3 py-1.5 bg-primary text-on-primary rounded text-xs font-semibold hover:bg-primary-container flex items-center gap-1 shadow-xs">
+<span class="material-symbols-outlined text-sm" data-icon="task_alt">task_alt</span> Confirm in Diagnostic Report
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Polygenic Risk Score (PRS) Sub-Panel & Clinical Decision Support -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-lg">
+<!-- Polygenic Risk Score (PRS) Sub-Panel (7 cols) -->
+<div class="xl:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-sm border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="query_stats">query_stats</span>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">Polygenic Risk Score (PRS) Profile</h3>
+</div>
+<span class="text-[11px] text-secondary bg-surface-container px-2 py-0.5 rounded">Array: Illumina GSA v3.0 • 1.2M SNPs</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md mt-md">
+<!-- PRS 1: CAD -->
+<div class="p-md rounded-lg bg-surface-container-low border border-outline-variant flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<h4 class="font-bold text-on-surface text-body-md">Coronary Artery Disease (CAD)</h4>
+<span class="px-2 py-0.5 bg-error-container text-on-error-container text-xs font-bold rounded">High Risk</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-xl text-headline-xl font-bold text-error">94th</span>
+<span class="text-body-sm text-secondary font-medium">percentile (RR: 3.2x)</span>
+</div>
+<p class="text-xs text-secondary mt-1">Multi-ancestry LDpred2 score calculated across 1,180,000 genome-wide loci.</p>
+</div>
+<!-- Visual Distribution Graph (SVG Bell Curve Simulation) -->
+<div class="mt-4 pt-3 border-t border-outline-variant">
+<div class="text-[11px] text-secondary flex justify-between mb-1">
+<span>Reference Cohort</span>
+<span class="text-error font-bold">Patient (94%)</span>
+</div>
+<div class="relative h-12 w-full flex items-end">
+<!-- Bell curve SVG representation -->
+<svg class="w-full h-10 overflow-visible" preserveaspectratio="none" viewbox="0 0 200 40">
+<path d="M0,38 Q50,38 75,25 Q100,5 125,25 Q150,38 200,38" fill="none" stroke="#bcc9c6" stroke-width="2"></path>
+<path d="M140,30 Q150,38 200,38 L200,40 L140,40 Z" fill="#ffdad6" opacity="0.6"></path>
+<!-- Marker at 94th percentile -->
+<circle cx="170" cy="33" fill="#ba1a1a" r="4"></circle>
+<line stroke="#ba1a1a" stroke-dasharray="2,2" stroke-width="1.5" x1="170" x2="170" y1="5" y2="35"></line>
+</svg>
+</div>
+<div class="flex justify-between text-[10px] text-secondary mt-1 font-mono">
+<span>0%</span>
+<span>50%</span>
+<span>100%</span>
+</div>
+</div>
+</div>
+<!-- PRS 2: T2D -->
+<div class="p-md rounded-lg bg-surface-container-low border border-outline-variant flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between">
+<h4 class="font-bold text-on-surface text-body-md">Type 2 Diabetes (T2D)</h4>
+<span class="px-2 py-0.5 bg-surface-container text-secondary text-xs font-bold rounded">Average / Moderate</span>
+</div>
+<div class="flex items-baseline gap-2 mt-2">
+<span class="font-headline-xl text-headline-xl font-bold text-on-surface">68th</span>
+<span class="text-body-sm text-secondary font-medium">percentile (RR: 1.3x)</span>
+</div>
+<p class="text-xs text-secondary mt-1">Incorporates 340 variants validated in DIAMANTE consortium meta-analysis.</p>
+</div>
+<!-- Visual Distribution Graph (SVG Bell Curve Simulation) -->
+<div class="mt-4 pt-3 border-t border-outline-variant">
+<div class="text-[11px] text-secondary flex justify-between mb-1">
+<span>Reference Cohort</span>
+<span class="text-primary font-bold">Patient (68%)</span>
+</div>
+<div class="relative h-12 w-full flex items-end">
+<svg class="w-full h-10 overflow-visible" preserveaspectratio="none" viewbox="0 0 200 40">
+<path d="M0,38 Q50,38 75,25 Q100,5 125,25 Q150,38 200,38" fill="none" stroke="#bcc9c6" stroke-width="2"></path>
+<!-- Marker at 68th percentile -->
+<circle cx="125" cy="25" fill="#00685f" r="4"></circle>
+<line stroke="#00685f" stroke-dasharray="2,2" stroke-width="1.5" x1="125" x2="125" y1="5" y2="25"></line>
+</svg>
+</div>
+<div class="flex justify-between text-[10px] text-secondary mt-1 font-mono">
+<span>0%</span>
+<span>50%</span>
+<span>100%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-4 p-2 bg-surface-container rounded text-xs text-secondary flex items-start gap-2">
+<span class="material-symbols-outlined text-base text-primary flex-shrink-0" data-icon="info">info</span>
+<span><strong>Clinical Note:</strong> PRS reflects polygenic background susceptibility separate from monogenic Mendelian variants. In this patient, monogenic <em>LDLR</em> variant compounds the 94th percentile CAD PRS burden.</span>
+</div>
+</div>
+<!-- AI-Assisted Multi-Factorial Synthesis & Clinical Decision Support (5 cols) -->
+<div class="xl:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 pb-sm border-b border-outline-variant">
+<span class="p-1 bg-primary text-on-primary rounded">
+<span class="material-symbols-outlined text-base" data-icon="neurology">neurology</span>
+</span>
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">AI Clinical Decision Support</h3>
+<p class="text-xs text-secondary">Automated Multi-Factorial Synthesis &amp; Guidelines</p>
+</div>
+</div>
+<div class="mt-md space-y-3">
+<div class="p-3 bg-surface-container-low border-l-4 border-l-error rounded-r-lg">
+<div class="flex items-center gap-1 text-xs font-bold text-error uppercase tracking-wider mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="priority_high">priority_high</span> Critical Dual Monogenic Finding
+              </div>
+<p class="text-xs text-on-surface leading-relaxed">
+                Identification of <strong>BRCA1:c.5266dupC</strong> confirms Hereditary Breast/Ovarian Cancer syndrome. Concurrently, <strong>LDLR:c.1775G&gt;A</strong> confirms Familial Hypercholesterolemia, dramatically magnified by a <strong>94th percentile CAD PRS</strong>.
+              </p>
+</div>
+<div>
+<span class="text-xs font-bold text-secondary uppercase tracking-wider block mb-1.5">Actionable Recommendations (NCCN &amp; AHA/ACC)</span>
+<ul class="space-y-2 text-xs text-on-surface">
+<li class="flex items-start gap-2 bg-surface-container-low p-2 rounded">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5" data-icon="check_circle">check_circle</span>
+<span><strong>High-Risk Breast Surveillance:</strong> Initiate annual breast MRI with contrast immediately; refer to Gynecologic Oncology for risk-reducing salpingo-oophorectomy counseling (ages 35–40).</span>
+</li>
+<li class="flex items-start gap-2 bg-surface-container-low p-2 rounded">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5" data-icon="check_circle">check_circle</span>
+<span><strong>Lipid Clinic Referral:</strong> Immediate baseline fasting lipid panel and high-intensity statin ± PCSK9 inhibitor evaluation due to dual LDLR + CAD PRS severity.</span>
+</li>
+<li class="flex items-start gap-2 bg-surface-container-low p-2 rounded">
+<span class="material-symbols-outlined text-primary text-sm mt-0.5" data-icon="check_circle">check_circle</span>
+<span><strong>Cascade Genetic Testing:</strong> Offer targeted variant testing to all first-degree relatives (parents, siblings, offspring).</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-2 border-t border-outline-variant flex items-center justify-between text-xs text-secondary">
+<span>AI Concordance Score: <strong>99.4%</strong></span>
+<span class="font-code-md text-primary font-semibold">ClinGen Expert Panel Validated</span>
+</div>
+</div>
+</div>
+<!-- Action Footer Bar -->
+<footer class="mt-auto bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col md:flex-row items-center justify-between gap-md">
+<div class="flex items-center gap-2 text-xs text-secondary max-w-2xl">
+<span class="material-symbols-outlined text-base text-secondary flex-shrink-0" data-icon="gavel">gavel</span>
+<p>
+<strong>Clinical Decision Support Disclaimer:</strong> This interpretation tool is certified as a Class IIb Medical Device under IVDR 2017/746. Variant classifications must be independently signed off by a certified medical geneticist or molecular pathologist before patient management changes.
+        </p>
+</div>
+<div class="flex items-center gap-sm w-full md:w-auto justify-end">
+<button class="px-3 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant rounded-lg text-body-sm font-semibold text-on-surface flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="file_download">file_download</span>
+<span>VCF Annotated (.vcf.gz)</span>
+</button>
+<button class="px-3 py-2 bg-surface-container-low hover:bg-surface-container border border-outline-variant rounded-lg text-body-sm font-semibold text-on-surface flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-base" data-icon="schema">schema</span>
+<span>Export Phenopacket</span>
+</button>
+<button class="px-4 py-2 bg-primary hover:bg-primary-container text-on-primary rounded-lg text-body-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined text-base" data-icon="draw">draw</span>
+<span>Sign &amp; Generate Clinical WES Report</span>
+</button>
+</div>
+</footer>
+</main>
+</body></html>
