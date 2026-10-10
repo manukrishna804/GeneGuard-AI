@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##source=GeneGuard-Module4-Synthetic-Test
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	PARENT1
+chr11	5227002	.	A	G	.	PASS	.	GT	0/1
+chr7	117199644	.	G	A	.	PASS	.	GT	1/1
+chr17	43045700	.	C	T	.	PASS	.	GT	0/0
+chr1	1234567	.	G	A	.	PASS	.	GT	1|0
