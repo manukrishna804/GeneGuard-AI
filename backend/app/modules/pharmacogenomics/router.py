@@ -1,5 +1,5 @@
-
 import json
+from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
@@ -16,12 +16,89 @@ from .services.vcf_parser import (
     VCFParseError,
     parse_vcf_content,
 )
+from .services.pharmcat_service import run_pharmcat
 
 
 router = APIRouter(
     prefix="/pharmacogenomics",
     tags=["Pharmacogenomics"],
 )
+
+
+def summarize_pharmcat_report(report: dict[str, Any]) -> dict[str, Any]:
+    """
+    Extract a compact summary from PharmCAT's report JSON.
+
+    Uncalled haplotypes are reported as uncertain information.
+    They are not treated as confirmed missing variants.
+    """
+
+    genes_result = {}
+
+    for gene_symbol, gene_data in report.get("genes", {}).items():
+        diplotypes = []
+
+        calls = gene_data.get("recommendationDiplotypes") or []
+
+        for call in calls:
+            diplotypes.append(
+                {
+                    "diplotype": call.get("label"),
+                    "phenotypes": call.get("phenotypes") or [],
+                    "activity_score": call.get("activityScore"),
+                    "inferred": call.get("inferred"),
+                    "match_score": call.get("matchScore"),
+                }
+            )
+
+        warnings = []
+
+        for message in gene_data.get("messages", []):
+            if isinstance(message, dict):
+                warnings.append(message)
+            else:
+                warnings.append(str(message))
+
+        for variant in gene_data.get("variants", []):
+            for warning in variant.get("warnings", []):
+                warnings.append(
+                    {
+                        "variant": variant.get("dbSnpId"),
+                        "position": variant.get("position"),
+                        "message": warning,
+                    }
+                )
+
+            if variant.get("hasUndocumentedVariations"):
+                warnings.append(
+                    {
+                        "variant": variant.get("dbSnpId"),
+                        "position": variant.get("position"),
+                        "message": (
+                            "Undocumented variation information "
+                            "was reported by PharmCAT."
+                        ),
+                    }
+                )
+
+        uncalled_haplotypes = gene_data.get(
+            "uncalledHaplotypes", []
+        )
+
+        # Include genes with a call or information requiring review.
+        if diplotypes or warnings or uncalled_haplotypes:
+            genes_result[gene_symbol] = {
+                "diplotypes": diplotypes,
+                "uncalled_haplotypes": uncalled_haplotypes,
+                "warnings": warnings,
+                "call_source": gene_data.get("callSource"),
+            }
+
+    return {
+        "pharmcat_version": report.get("pharmcatVersion"),
+        "report_title": report.get("title"),
+        "genes": genes_result,
+    }
 
 
 @router.get("/ping")
@@ -56,11 +133,19 @@ async def analyze_pharmacogenomics(
 
     return PharmacogenomicsResponse(
         patient_id=request.patient_id,
-        analysis_status="candidate_for_review" if result["recommendations"] else "review_required",
-        review_message=(
-            "Demo output only. Variant annotation is not a validated diplotype or clinical advice; confirm results with a qualified pharmacogenomics professional."
+        analysis_status=(
+            "candidate_for_review"
+            if result["recommendations"]
+            else "review_required"
         ),
-        detected_variants=result["pharmacogene_variants"].get("CYP2C19", []),
+        review_message=(
+            "Demo output only. Variant annotation is not a validated "
+            "diplotype or clinical advice. Confirm results with a "
+            "qualified pharmacogenomics professional."
+        ),
+        detected_variants=(
+            result["pharmacogene_variants"].get("CYP2C19", [])
+        ),
         diplotypes=result["diplotypes"],
         phenotypes=result["phenotypes"],
         recommendations=result["recommendations"],
@@ -85,9 +170,10 @@ async def analyze_vcf(
     file: UploadFile = File(...),
 ):
     """
-    Accept a VCF file and analyze its parsed variants.
+    Parse a VCF, run PharmCAT through the separate worker,
+    and run the existing GeneGuard pharmacogenomics pipeline.
 
-    medications_json must be a JSON array, for example:
+    medications_json example:
     [{"name": "Clopidogrel", "dosage": "75 mg"}]
     """
 
@@ -139,15 +225,24 @@ async def analyze_vcf(
             ),
         ) from exc
 
-    # Annotate each parsed variant using MyVariant.info.
-    # Annotation supplies gene evidence; it does not call star alleles.
+    # Run PharmCAT through the shared-folder worker.
+    try:
+        pharmcat_report = await run_pharmcat(content)
+        pharmcat_result = summarize_pharmcat_report(
+            pharmcat_report
+        )
+
+    except (RuntimeError, TimeoutError, ValueError, OSError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"PharmCAT analysis failed: {str(exc)}",
+        ) from exc
+
+    # Run the existing MyVariant.info annotation.
     annotated_variants = []
 
     for item in variants_data:
         annotation = annotate_parsed_variant(item)
-
-        print("VARIANT:", item)
-        print("ANNOTATION:", annotation)
 
         if (
             annotation.get("status") == "success"
@@ -159,8 +254,7 @@ async def analyze_vcf(
             VariantInput.model_validate(item).model_dump()
         )
 
-    print("ANNOTATED VARIANTS:", annotated_variants)
-
+    # Preserve the existing GeneGuard pipeline.
     result = await run_pharmacogenomics_pipeline(
         variants=annotated_variants,
         medications=[
@@ -172,11 +266,21 @@ async def analyze_vcf(
 
     return PharmacogenomicsResponse(
         patient_id=patient_id,
-        analysis_status="candidate_for_review" if result["recommendations"] else "review_required",
-        review_message=(
-            "Demo output only. Variant annotation is not a validated diplotype or clinical advice; confirm results with a qualified pharmacogenomics professional."
+        analysis_status=(
+            "candidate_for_review"
+            if result["recommendations"]
+            else "review_required"
         ),
-        detected_variants=result["pharmacogene_variants"].get("CYP2C19", []),
+        review_message=(
+            "PharmCAT results and GeneGuard pipeline output are "
+            "provided for review. Missing or uncalled haplotypes "
+            "may affect interpretation. This is not a validated "
+            "clinical result; confirm findings with a qualified "
+            "pharmacogenomics professional."
+        ),
+        detected_variants=(
+            result["pharmacogene_variants"].get("CYP2C19", [])
+        ),
         diplotypes=result["diplotypes"],
         phenotypes=result["phenotypes"],
         recommendations=result["recommendations"],
@@ -187,4 +291,5 @@ async def analyze_vcf(
             if result["flagged_conflicts"]
             else None
         ),
+        pharmcat_result=pharmcat_result,
     )

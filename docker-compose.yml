@@ -1,5 +1,4 @@
 services:
-
   postgres:
     image: postgres:16
     container_name: geneguard-postgres
@@ -46,6 +45,16 @@ services:
       - ./backend:/app
     depends_on:
       - postgres
+    networks:
+      - geneguard-network
+
+  pharmcat:
+    image: pgkb/pharmcat
+    container_name: geneguard-pharmcat
+    restart: unless-stopped
+    entrypoint: [ "/bin/bash", "/data/pharmcat_worker.sh" ]
+    volumes:
+      - ./backend:/data
     networks:
       - geneguard-network
 

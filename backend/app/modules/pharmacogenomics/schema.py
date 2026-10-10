@@ -147,3 +147,5 @@ class PharmacogenomicsResponse(BaseModel):
     confidence: Optional[float] = None
 
     specialist: Optional[str] = None
+    # Summary returned by the separate PharmCAT worker
+    pharmcat_result: Optional[Dict[str, Any]] = None
