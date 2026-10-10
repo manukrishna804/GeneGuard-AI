@@ -1,23 +1,46 @@
+
 from typing import Any, Dict, List
+
+
+def has_usable_value(value: Any) -> bool:
+    """Check whether a value contains meaningful, non-empty data."""
+
+    if value is None:
+        return False
+
+    if isinstance(value, str):
+        return bool(value.strip())
+
+    if isinstance(value, dict):
+        return any(has_usable_value(v) for v in value.values())
+
+    if isinstance(value, list):
+        return any(has_usable_value(v) for v in value)
+
+    return True
+
+
+def has_pharmvar_definition(pharmvar: Any) -> bool:
+    """Only count PharmVar entries with actual definitions."""
+
+    if not isinstance(pharmvar, list):
+        return False
+
+    return any(
+        isinstance(item, dict)
+        and has_usable_value(item.get("definition"))
+        for item in pharmvar
+    )
 
 
 def calculate_confidence(
     recommendations: List[Dict[str, Any]],
 ) -> float:
     """
-    Calculate an overall confidence score for the
-    pharmacogenomic analysis.
+    Calculate an engineering evidence-completeness score.
 
-    The score is based on:
-    - availability of CPIC evidence
-    - availability of PharmGKB evidence
-    - availability of PharmVar evidence
-    - availability of DrugBank context
-    - presence of evidence conflicts
-    - availability of a rule-based recommendation
-
-    This is an engineering confidence indicator for the
-    Module 5 result. It is NOT a clinical probability.
+    This is NOT a clinical probability or a validated measure
+    of recommendation accuracy.
     """
 
     if not recommendations:
@@ -26,66 +49,71 @@ def calculate_confidence(
     scores: List[float] = []
 
     for recommendation in recommendations:
-
         score = 0.0
+        evidence = recommendation.get("evidence") or {}
 
-        # ----------------------------------------------------
-        # Recommendation exists
-        # ----------------------------------------------------
+        cpic = evidence.get("cpic") or {}
+        pharmgkb = evidence.get("pharmgkb") or {}
+        pharmvar = evidence.get("pharmvar") or []
+        drugbank = evidence.get("drugbank") or {}
 
-        if recommendation.get("recommendation"):
+        # Recommendation text exists.
+        if has_usable_value(recommendation.get("recommendation")):
             score += 30
 
-        # ----------------------------------------------------
-        # Evidence source
-        # ----------------------------------------------------
-
-        evidence = recommendation.get(
-            "evidence",
-            {},
-        )
-
-        if evidence.get("cpic", {}).get("available"):
+        # CPIC recommendation or implication is actually available.
+        if (
+            cpic.get("available")
+            and (
+                has_usable_value(cpic.get("recommendation"))
+                or has_usable_value(cpic.get("implication"))
+            )
+        ):
             score += 30
 
-        if evidence.get("pharmgkb", {}).get("available"):
+        # PharmGKB contains usable evidence.
+        if (
+            pharmgkb.get("available")
+            and (
+                has_usable_value(pharmgkb.get("annotation"))
+                or has_usable_value(pharmgkb.get("evidence_level"))
+            )
+        ):
             score += 20
 
-        if evidence.get("pharmvar"):
+        # PharmVar must contain an actual allele definition.
+        if has_pharmvar_definition(pharmvar):
             score += 10
 
-        if evidence.get("drugbank", {}).get("available"):
+        # DrugBank must contain usable interaction or context data.
+        if (
+            drugbank.get("available")
+            and (
+                has_usable_value(drugbank.get("interaction"))
+                or has_usable_value(
+                    drugbank.get("pharmacokinetic_context")
+                )
+            )
+        ):
             score += 5
 
-        # ----------------------------------------------------
-        # Conflict penalty
-        # ----------------------------------------------------
-
+        # Penalize explicitly detected conflicts.
         if recommendation.get("conflict"):
             score -= 20
 
-        # Keep each recommendation between 0 and 100.
-        score = max(
-            0.0,
-            min(100.0, score),
-        )
-
+        score = max(0.0, min(100.0, score))
         scores.append(score)
 
-    return round(
-        sum(scores) / len(scores),
-        2,
-    )
+    return round(sum(scores) / len(scores), 2)
 
 
 def calculate_evidence_confidence(
     evidence: Dict[str, Any],
 ) -> float:
     """
-    Calculate confidence for a single evidence package.
-
-    This function is useful when the pipeline needs to
-    inspect confidence before generating the final report.
+    Calculate an engineering evidence-completeness score
+    for one evidence package. This function is not currently
+    used by the main pipeline.
     """
 
     score = 0.0
@@ -95,19 +123,36 @@ def calculate_evidence_confidence(
     pharmvar = evidence.get("pharmvar") or []
     drugbank = evidence.get("drugbank") or {}
 
-    if cpic.get("available"):
+    if (
+        cpic.get("available")
+        and (
+            has_usable_value(cpic.get("recommendation"))
+            or has_usable_value(cpic.get("implication"))
+        )
+    ):
         score += 40
 
-    if pharmgkb.get("available"):
+    if (
+        pharmgkb.get("available")
+        and (
+            has_usable_value(pharmgkb.get("annotation"))
+            or has_usable_value(pharmgkb.get("evidence_level"))
+        )
+    ):
         score += 25
 
-    if pharmvar:
+    if has_pharmvar_definition(pharmvar):
         score += 20
 
-    if drugbank.get("available"):
+    if (
+        drugbank.get("available")
+        and (
+            has_usable_value(drugbank.get("interaction"))
+            or has_usable_value(
+                drugbank.get("pharmacokinetic_context")
+            )
+        )
+    ):
         score += 15
 
-    return round(
-        min(100.0, score),
-        2,
-    )
+    return round(min(100.0, score), 2)

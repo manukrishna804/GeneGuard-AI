@@ -23,12 +23,15 @@ class VariantInput(BaseModel):
     star_allele: Optional[str] = None
 
 
+
 class PharmacogenomicsRequest(BaseModel):
     """
-    Input received by Module 5 from the frontend / Module 1.
+    Input provided directly to Module 5 by the user/frontend.
     """
 
     patient_id: str
+
+    clinical_indication: Optional[str] = None
 
     medications: List[MedicationInput] = Field(default_factory=list)
 

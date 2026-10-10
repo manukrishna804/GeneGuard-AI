@@ -22,6 +22,7 @@ async def ping():
     }
 
 
+
 @router.post("/analyze", response_model=PharmacogenomicsResponse)
 async def analyze_pharmacogenomics(
     request: PharmacogenomicsRequest,
@@ -35,6 +36,7 @@ async def analyze_pharmacogenomics(
             medication.model_dump()
             for medication in request.medications
         ],
+        clinical_indication=request.clinical_indication,
     )
 
     return PharmacogenomicsResponse(

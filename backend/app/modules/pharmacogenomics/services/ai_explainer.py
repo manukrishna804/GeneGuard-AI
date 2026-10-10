@@ -1,3 +1,4 @@
+
 import json
 import os
 from typing import Any, Dict, Optional
@@ -9,11 +10,8 @@ class AIExplainer:
     """
     AI explanation layer for Module 5.
 
-    IMPORTANT:
-    The AI does not make clinical decisions.
-
-    It receives an already-generated rule-based
-    recommendation and explains it in plain language.
+    The AI explains an existing recommendation and does not
+    independently make clinical decisions.
     """
 
     def __init__(self):
@@ -36,10 +34,9 @@ class AIExplainer:
         recommendation: Dict[str, Any],
     ) -> str:
         """
-        Generate a patient-friendly explanation from
-        structured evidence.
+        Generate a concise explanation from structured evidence.
 
-        The raw VCF is never sent to the LLM.
+        Raw VCF data is not sent to the LLM by this function.
         """
 
         if not self.client:
@@ -57,55 +54,49 @@ class AIExplainer:
 You are the explanation layer of a pharmacogenomics
 clinical decision-support system.
 
-The clinical recommendation has ALREADY been produced
-by a deterministic rule engine.
+An existing recommendation has already been generated.
+Your task is to explain the supplied result, not to make
+a new clinical decision.
 
-Your job is ONLY to explain that recommendation in
-clear, simple language.
-
-Do NOT:
-- create a new recommendation
-- change the recommendation
-- override the rule engine
-- invent clinical evidence
-- invent guideline information
-- make claims not present in the supplied evidence
-
-If the evidence is incomplete or marked for review,
-clearly mention that.
-
-Use only the structured information supplied below.
+Rules:
+- Do not create or change a recommendation.
+- Do not invent clinical evidence or guideline details.
+- Do not describe a CPIC/ClinPGx recommendation as a
+  local rule-based recommendation.
+- Identify the recommendation source only when supported
+  by the supplied structured result.
+- If the evidence is incomplete or marked for review,
+  state that clearly.
+- Do not invent additional treatment options.
+- Use simple, concise language.
 
 STRUCTURED PHARMACOGENOMICS RESULT:
 
 {evidence_json}
 
-Write a concise explanation covering:
-
+Explain:
 1. The relevant gene.
-2. The patient's diplotype, if available.
+2. The reported diplotype, if available.
 3. The metabolizer phenotype, if available.
-4. The medication involved.
-5. What the existing recommendation says.
-6. The evidence/source information available.
-7. Any conflict or specialist-review warning.
+4. The medication being evaluated.
+5. The supplied recommendation.
+6. The evidence source and classification, if available.
+7. Any conflict, warning, or need for further review.
 
-Do not provide additional treatment options that are
-not present in the supplied recommendation.
+Make clear that the result is clinical decision support
+and should be reviewed by a qualified healthcare professional.
 """
 
         try:
-
             response = await self.client.chat.completions.create(
                 model=self.model,
-
                 messages=[
                     {
                         "role": "system",
                         "content": (
-                            "You explain structured "
-                            "pharmacogenomics evidence. "
-                            "You do not make clinical decisions."
+                            "Explain structured pharmacogenomics "
+                            "results accurately. Do not make "
+                            "independent clinical decisions."
                         ),
                     },
                     {
@@ -113,20 +104,19 @@ not present in the supplied recommendation.
                         "content": prompt,
                     },
                 ],
-
                 temperature=0.0,
             )
 
             explanation = (
-                response.choices[0]
-                .message
-                .content
+                response.choices[0].message.content
             )
 
-            if explanation:
+            if explanation and explanation.strip():
                 return explanation.strip()
 
         except Exception:
+            # Use the deterministic fallback if the AI service
+            # fails. Do not expose internal API errors to patients.
             pass
 
         return self._fallback_explanation(
@@ -142,27 +132,28 @@ not present in the supplied recommendation.
         the AI service is unavailable.
         """
 
-        gene = recommendation.get(
-            "gene"
+        gene = recommendation.get("gene")
+        drug = recommendation.get("drug")
+        diplotype = recommendation.get("diplotype")
+        phenotype = recommendation.get("phenotype")
+        recommendation_text = recommendation.get(
+            "recommendation"
         )
+        source = recommendation.get("source")
+        evidence_level = recommendation.get("evidence_level")
 
-        drug = recommendation.get(
-            "drug"
-        )
+        evidence = recommendation.get("evidence") or {}
+        cpic = evidence.get("cpic") or {}
 
-        diplotype = recommendation.get(
-            "diplotype"
-        )
+        # Prefer the source recorded in the structured result.
+        # Fall back to the nested CPIC evidence when needed.
+        if not source and cpic.get("source"):
+            source = cpic.get("source")
 
-        phenotype = recommendation.get(
-            "phenotype"
-        )
-
-        recommendation_text = (
-            recommendation.get(
-                "recommendation"
+        if not evidence_level and cpic.get("evidence_level"):
+            evidence_level = (
+                f"CPIC {cpic['evidence_level']}"
             )
-        )
 
         parts = []
 
@@ -178,40 +169,62 @@ not present in the supplied recommendation.
 
         if phenotype:
             parts.append(
-                f"The associated phenotype is "
-                f"{phenotype}."
+                f"The associated phenotype is {phenotype}."
             )
 
         if drug:
             parts.append(
-                f"The medication being evaluated is "
-                f"{drug}."
+                f"The medication being evaluated is {drug}."
             )
 
         if recommendation_text:
+            clean_recommendation = recommendation_text.strip().rstrip(".")
+            source_name = source or "the available evidence"
+
             parts.append(
-                f"The rule-based recommendation is: "
-                f"{recommendation_text}."
+                f"The recommendation from {source_name} is: "
+                f"{clean_recommendation}."
+            )
+
+        if evidence_level:
+            parts.append(
+                f"The reported evidence classification is "
+                f"{evidence_level}."
             )
 
         if recommendation.get("conflict"):
             parts.append(
-                "The evidence contains a conflict and "
-                "requires specialist review."
+                "A potential evidence conflict was identified; "
+                "specialist review is required."
             )
 
-        if recommendation.get(
-            "requires_review"
-        ):
+        warnings = recommendation.get("warnings") or []
+
+        if warnings:
             parts.append(
-                "Additional evidence review is "
-                "recommended before finalization."
+                "Evidence review is needed because: "
+                + " ".join(
+                    str(warning).strip().rstrip(".") + "."
+                    for warning in warnings
+                    if str(warning).strip()
+                )
+            )
+        elif recommendation.get("requires_review"):
+            parts.append(
+                "Additional evidence review is recommended "
+                "before finalizing the result."
             )
 
-        if not parts:
+        parts.append(
+            "This result supports clinical decision-making "
+            "and is not a substitute for review by a qualified "
+            "healthcare professional."
+        )
+
+        if len(parts) == 1:
             return (
-                "No sufficient structured information "
-                "is available to generate an explanation."
+                "Insufficient structured information is available "
+                "to explain this result. Clinical review is needed."
             )
 
         return " ".join(parts)

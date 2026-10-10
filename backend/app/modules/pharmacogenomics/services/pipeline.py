@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .pharmacogene_filter import filter_pharmacogenes
 from .diplotype_caller import call_diplotypes
@@ -20,6 +20,7 @@ from .ai_explainer import explain_recommendation
 async def run_pharmacogenomics_pipeline(
     variants: List[Dict[str, Any]],
     medications: List[Dict[str, Any]],
+    clinical_indication: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Main orchestration pipeline for Pharmacogenomics Module 5.
@@ -103,12 +104,16 @@ async def run_pharmacogenomics_pipeline(
 
         key = f"{gene}:{drug}"
 
+       
         # CPIC
         cpic_results[key] = await fetch_cpic_guideline(
             gene=gene,
             drug=drug,
+            phenotype=pair.get("phenotype"),
+            population=clinical_indication,
             guideline_id=guideline_id,
         )
+
 
         # PharmGKB
         pharmgkb_results[key] = await fetch_pharmgkb_evidence(
