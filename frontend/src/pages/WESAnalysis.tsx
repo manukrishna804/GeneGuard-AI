@@ -142,7 +142,7 @@ function ClassificationBadge({ classification }: { classification: string }) {
   );
 }
 
-function ValidVariantCard({ result, index }: { result: ValidVariantResult; index: number }) {
+function ValidVariantCard({ result }: { result: ValidVariantResult }) {
   const [expanded, setExpanded] = useState(false);
   const { gene, variant, type, evidence, identity, interpretation } = result;
   const consequence = evidence.consequence;
@@ -338,7 +338,7 @@ function ValidVariantCard({ result, index }: { result: ValidVariantResult; index
                       <tr className="border-b border-gray-50">
                         <td className="py-1 pr-3 text-gray-500">Candidates Found</td>
                         <td className="py-1 font-mono text-gray-800">
-                          {evidence.sources?.dbvar?.candidate_count ?? 0}
+                          {(evidence.sources as any)?.dbvar?.candidate_count ?? 0}
                         </td>
                       </tr>
                     </tbody>
@@ -861,7 +861,7 @@ export default function WESAnalysis() {
           </h2>
           <div className="flex flex-col gap-4">
             {validResults.map((r, i) => (
-              <ValidVariantCard key={i} result={r} index={i} />
+              <ValidVariantCard key={i} result={r} />
             ))}
           </div>
         </section>

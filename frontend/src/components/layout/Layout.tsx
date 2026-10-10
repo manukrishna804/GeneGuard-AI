@@ -1,6 +1,9 @@
 import { Outlet, NavLink } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Layout() {
+  const { doctor, logout } = useAuth();
+  
   const navItems = [
     { name: 'Dashboard', path: '/', icon: 'dashboard' },
     { name: 'Genetic Disorder ID', path: '/wes-analysis', icon: 'biotech' },
@@ -36,20 +39,26 @@ export default function Layout() {
         </div>
 
         <div className="flex items-center justify-end gap-4 w-1/3">
-          <button className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer relative" title="Notifications">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer" title="Settings">
-            <span className="material-symbols-outlined">settings</span>
-          </button>
-          <button className="bg-primary hover:bg-[#005049] text-white font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-colors cursor-pointer">
+          <button className="bg-primary hover:bg-[#005049] text-white font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition-colors cursor-pointer mr-2">
             Run Analysis
           </button>
-          <img 
-            alt="Profile" 
-            className="w-8 h-8 rounded-full object-cover border border-gray-200" 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7035javUZlrqbmoCXTbG3Ig8nVXGz5sTv9HG8J3W4ylngtHLu-_M_vzcpKnLdFp8oczNccx3yl0lmtiKaA5tqzoJ0kYzmDnZwMpETl6rmsa-_aGWqcf1etyLngyZMUUMPCYYZ-pReE0gCbAfEtGedVe014MKOSmJ1VhfvKRosFBdz0l4Mhbw9LtEvSxVdC7M-QXFIVNmZYYvqdVBDDFWIcbCQKwnlF-da6xBCsnbDvTLJ7azit3pK" 
-          />
+          
+          <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-semibold text-gray-700">{doctor?.full_name}</span>
+              <span className="text-[10px] text-gray-500 uppercase tracking-wider">{doctor?.specialty || 'Doctor'}</span>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-primary font-bold border border-teal-200">
+              {doctor?.full_name?.charAt(0) || 'D'}
+            </div>
+            <button 
+              onClick={logout}
+              className="text-gray-400 hover:text-red-500 transition-colors ml-2 cursor-pointer"
+              title="Logout"
+            >
+              <span className="material-symbols-outlined">logout</span>
+            </button>
+          </div>
         </div>
       </header>
 

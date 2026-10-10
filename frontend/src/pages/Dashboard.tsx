@@ -1,6 +1,24 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
+  const { doctor } = useAuth();
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const doctorFirstName = doctor?.full_name?.split(' ').slice(-1)[0] ?? 'Doctor';
+
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
   const modules = [
     { name: 'Genetic Disorder ID', path: '/wes-analysis', icon: 'biotech', status: 'IN PROGRESS', desc: 'WES report parsing & ClinVar/gnomAD variant lookup' },
     { name: 'Facial Phenotype', path: '/facial-phenotype', icon: 'person_search', status: 'PLANNED', desc: 'Rule-based facial landmark screening' },
@@ -27,8 +45,8 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Good Morning, Dr. Chen</h1>
-          <p className="text-gray-500 mt-1">Here is your clinical overview for today, October 24, 2023.</p>
+          <h1 className="text-3xl font-bold text-gray-900">{getGreeting()}, Dr. {doctorFirstName}</h1>
+          <p className="text-gray-500 mt-1">Here is your clinical overview for today, {today}.</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pending Reviews</p>

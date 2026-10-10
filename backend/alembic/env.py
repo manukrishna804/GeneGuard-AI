@@ -6,6 +6,7 @@ from app.modules.facial_phenotype.model import Phenotype
 from app.modules.lifestyle.model import Lifestyle
 from app.modules.family_pedigree.model import FamilyHistory
 from app.modules.report.model import AIReport
+from app.modules.doctor.model import Doctor
 
 
 from sqlalchemy import engine_from_config

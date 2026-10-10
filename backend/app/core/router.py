@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.modules.patient.router import router as patient_router
+from app.modules.doctor.router import router as auth_router
 from app.modules.wes_analysis.router import router as wes_router
 from app.modules.facial_phenotype.router import router as phenotype_router
 from app.modules.lifestyle.router import router as lifestyle_router
@@ -10,6 +11,7 @@ from app.modules.report.router import router as report_router
 
 router = APIRouter()
 
+router.include_router(auth_router)
 router.include_router(patient_router)
 router.include_router(wes_router)
 router.include_router(phenotype_router)
