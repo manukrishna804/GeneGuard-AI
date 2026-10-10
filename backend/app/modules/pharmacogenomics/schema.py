@@ -128,6 +128,14 @@ class PharmacogenomicsResponse(BaseModel):
 
     patient_id: str
 
+    # Demo-facing audit fields: a variant annotation is not a validated
+    # diplotype or a clinical recommendation.
+    analysis_status: str = "review_required"
+    review_message: Optional[str] = None
+    detected_variants: List[Dict[str, Any]] = Field(default_factory=list)
+    diplotypes: List[Dict[str, Any]] = Field(default_factory=list)
+    phenotypes: List[Dict[str, Any]] = Field(default_factory=list)
+
     recommendations: List[PharmacogenomicRecommendation] = Field(
         default_factory=list
     )

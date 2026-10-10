@@ -74,9 +74,16 @@ async def run_pharmacogenomics_pipeline(
     # 4. Match medications with pharmacogenes
     # ---------------------------------------------------------
 
+    # Only map a drug when the diplotype supports a phenotype. A detected
+    # variant alone must not trigger a genotype-specific recommendation.
+    actionable_phenotypes = [
+        result for result in phenotype_results
+        if result.get("phenotype") is not None
+    ]
+
     matched_pairs = match_drugs_to_genes(
         medications=medications,
-        phenotype_results=phenotype_results,
+        phenotype_results=actionable_phenotypes,
     )
 
     # ---------------------------------------------------------

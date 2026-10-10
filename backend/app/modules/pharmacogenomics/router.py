@@ -1,4 +1,6 @@
 
+import json
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from .schema import (
@@ -8,6 +10,7 @@ from .schema import (
     VariantInput,
 )
 from .services.pipeline import run_pharmacogenomics_pipeline
+from .services.variant_annotator import annotate_parsed_variant
 from .services.vcf_parser import (
     MAX_VCF_SIZE_BYTES,
     VCFParseError,
@@ -53,6 +56,13 @@ async def analyze_pharmacogenomics(
 
     return PharmacogenomicsResponse(
         patient_id=request.patient_id,
+        analysis_status="candidate_for_review" if result["recommendations"] else "review_required",
+        review_message=(
+            "Demo output only. Variant annotation is not a validated diplotype or clinical advice; confirm results with a qualified pharmacogenomics professional."
+        ),
+        detected_variants=result["pharmacogene_variants"].get("CYP2C19", []),
+        diplotypes=result["diplotypes"],
+        phenotypes=result["phenotypes"],
         recommendations=result["recommendations"],
         flagged_conflicts=result["flagged_conflicts"],
         confidence=result["confidence"],
@@ -99,7 +109,7 @@ async def analyze_vcf(
             )
 
         variants_data = parse_vcf_content(content)
-        print("VCF PARSED VARIANTS:", variants_data)
+
     except VCFParseError as exc:
         raise HTTPException(
             status_code=400,
@@ -109,15 +119,11 @@ async def analyze_vcf(
     finally:
         await file.close()
 
-    import json
-
     try:
         medications_data = json.loads(medications_json)
 
         if not isinstance(medications_data, list):
-            raise ValueError(
-                "Medications must be a JSON array."
-            )
+            raise ValueError("Medications must be a JSON array.")
 
         medications = [
             MedicationInput.model_validate(item)
@@ -133,16 +139,30 @@ async def analyze_vcf(
             ),
         ) from exc
 
-    variants = [
-        VariantInput.model_validate(item)
-        for item in variants_data
-    ]
+    # Annotate each parsed variant using MyVariant.info.
+    # Annotation supplies gene evidence; it does not call star alleles.
+    annotated_variants = []
+
+    for item in variants_data:
+        annotation = annotate_parsed_variant(item)
+
+        print("VARIANT:", item)
+        print("ANNOTATION:", annotation)
+
+        if (
+            annotation.get("status") == "success"
+            and annotation.get("gene")
+        ):
+            item["gene"] = annotation["gene"]
+
+        annotated_variants.append(
+            VariantInput.model_validate(item).model_dump()
+        )
+
+    print("ANNOTATED VARIANTS:", annotated_variants)
 
     result = await run_pharmacogenomics_pipeline(
-        variants=[
-            variant.model_dump()
-            for variant in variants
-        ],
+        variants=annotated_variants,
         medications=[
             medication.model_dump()
             for medication in medications
@@ -152,6 +172,13 @@ async def analyze_vcf(
 
     return PharmacogenomicsResponse(
         patient_id=patient_id,
+        analysis_status="candidate_for_review" if result["recommendations"] else "review_required",
+        review_message=(
+            "Demo output only. Variant annotation is not a validated diplotype or clinical advice; confirm results with a qualified pharmacogenomics professional."
+        ),
+        detected_variants=result["pharmacogene_variants"].get("CYP2C19", []),
+        diplotypes=result["diplotypes"],
+        phenotypes=result["phenotypes"],
         recommendations=result["recommendations"],
         flagged_conflicts=result["flagged_conflicts"],
         confidence=result["confidence"],
