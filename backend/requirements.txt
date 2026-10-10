@@ -132,7 +132,7 @@ requests==2.31.0
 rsa==4.9.1
 safetensors==0.7.0
 scikit-image==0.25.2
-scikit-learn==1.7.2
+scikit-learn==1.6.1
 scipy==1.16.3
 sentencepiece==0.2.1
 setuptools==80.9.0
@@ -175,7 +175,6 @@ Werkzeug==2.3.7
 wget==3.2
 wheel==0.45.1
 wrapt==2.0.1
+xgboost==3.4.1
 yarl==1.20.1
 zipp==3.23.0
-
-passlib[bcrypt]
