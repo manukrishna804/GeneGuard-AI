@@ -1,5 +1,6 @@
 import requests
 import re
+from .population_evidence import evaluate_population_evidence
 
 
 # ============================================================
@@ -591,6 +592,17 @@ def get_snv_evidence(record):
             f"{vcf['reference']}>"
             f"{vcf['alternate']}"
         )
+        population = evaluate_population_evidence(
+            chromosome=vcf.get("chromosome"),
+            position=vcf.get("position"),
+            reference=vcf.get("reference"),
+            alternate=vcf.get("alternate"),
+        )
+    else:
+        population = {
+            "status": "unavailable",
+            "message": "Genomic representation unavailable.",
+        }
 
     # --------------------------------------------------------
     # MyVariant.info
@@ -709,6 +721,7 @@ def get_snv_evidence(record):
         "myvariant": myvariant,
         "clingen": clingen,
         "clinvar": clinvar,
+        "population": population,
     }
 
 

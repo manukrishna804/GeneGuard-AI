@@ -2,6 +2,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database.session import get_db
@@ -9,7 +10,6 @@ from app.modules.patient.model import Patient
 from app.modules.wes_analysis.model import WESReport
 from app.modules.wes_analysis.pipeline import analyze_wes_report
 from sqlalchemy import text
-
 
 router = APIRouter(
     prefix="/wes",

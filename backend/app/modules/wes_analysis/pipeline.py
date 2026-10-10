@@ -6,12 +6,12 @@ from .variant_validator import validate_variant
 from .variant_evidence import get_variant_evidence
 from .evidence_combiner import combine_evidence
 from .variant_interpretation import interpret_variant
+from .llm_explanation import generate_variant_explanation
 
 
 # ============================================================
 # FULL WES ANALYSIS PIPELINE
 # ============================================================
-
 def analyze_wes_report(pdf_path):
 
     # --------------------------------------------------------
@@ -70,7 +70,43 @@ def analyze_wes_report(pdf_path):
             variant_record=record,
             combined_evidence=combined
         )
+
         combined["interpretation"] = interpretation
+
+        # ----------------------------------------------------
+        # STAGE 6: LLM EXPLANATION
+        # ----------------------------------------------------
+
+        try:
+            llm_input = {
+                "variant": combined["variant"],
+                "classification": interpretation["classification"],
+                "confidence": interpretation["confidence"],
+                "reasoning": interpretation["reasoning"],
+                "identity": interpretation["identity"],
+                "evidence_summary": interpretation["evidence_summary"],
+            }
+
+            explanation = generate_variant_explanation(
+                llm_input
+            )
+
+            combined["interpretation"]["explanation"] = explanation
+
+        except Exception as exc:
+
+            combined["interpretation"]["explanation"] = {
+                "status": "unavailable",
+                "message": (
+                    "A human-readable explanation could not "
+                    "be generated at this time."
+                ),
+                "error": str(exc)
+            }
+
+        # ----------------------------------------------------
+        # ADD THIS VARIANT TO FINAL RESULTS
+        # ----------------------------------------------------
 
         results.append(combined)
 
@@ -83,7 +119,7 @@ def analyze_wes_report(pdf_path):
 
 if __name__ == "__main__":
 
-    pdf_path = "medgenome_report.pdf"
+    pdf_path = "app/modules/wes_analysis/medgenome_report.pdf"
 
     results = analyze_wes_report(
         pdf_path

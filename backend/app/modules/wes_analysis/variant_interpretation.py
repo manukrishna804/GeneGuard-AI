@@ -1,4 +1,5 @@
 from .interpretation_config import SNV_THRESHOLDS
+from .snv_criteria import evaluate_snv_criteria
 
 
 def interpret_variant(
@@ -15,6 +16,7 @@ def interpret_variant(
     """
 
     variant_type = variant_record.get("type")
+    criteria = None
 
     interpretation = {
         "classification": "VUS",
@@ -69,6 +71,15 @@ def interpret_variant(
             "status": "not_available",
             "records": []
         }
+        
+        criteria = evaluate_snv_criteria(
+            consequence=consequence,
+            computational_predictions=predictions,
+            clinvar=clinvar,
+            clingen=clingen,
+            validation_sources=sources,
+            population=evidence.get("population") or {},
+        )
 
         # --------------------------------------------
         # Identity
@@ -99,6 +110,7 @@ def interpret_variant(
             "conservation": conservation,
             "clingen": clingen,
             "clinvar": clinvar,
+            "criteria": criteria,
             "sources": sources
         }
 
@@ -286,7 +298,8 @@ def interpret_variant(
                 "candidates",
                 []
             ),
-            "sources": sources
+            "sources": sources,
+            "criteria": criteria
         }
 
         # --------------------------------------------

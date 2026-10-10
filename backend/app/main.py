@@ -7,7 +7,6 @@ from app.core.router import router
 from app.core.config import settings
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -19,6 +18,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allow the React/Vite frontend to communicate with FastAPI.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

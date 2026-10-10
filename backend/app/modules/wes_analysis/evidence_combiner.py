@@ -65,6 +65,13 @@ def combine_evidence(
             "clinvar",
             {}
         )
+        population = evidence_result.get(
+            "population",
+            {}
+        ) or {
+            "status": "unavailable",
+            "reason": "Population evidence unavailable."
+        }
 
         # --------------------------------------------
         # Identity / normalized representation
@@ -160,6 +167,10 @@ def combine_evidence(
         combined["evidence"][
             "clinvar"
         ] = clinvar
+
+        combined["evidence"][
+            "population"
+        ] = population
 
         # --------------------------------------------
         # Source status

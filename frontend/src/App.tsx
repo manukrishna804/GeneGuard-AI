@@ -18,7 +18,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          
+
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
@@ -31,7 +31,7 @@ function App() {
               <Route path="report" element={<PatientReport />} />
             </Route>
           </Route>
-          
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
