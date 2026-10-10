@@ -321,20 +321,63 @@ function ValidVariantCard({ result, index }: { result: ValidVariantResult; index
             </div>
           )}
 
-          {/* ClinVar detail */}
-          <div>
-            <p className="font-bold text-gray-500 uppercase tracking-wider mb-2">ClinVar</p>
-            {clinvarNotFound ? (
-              <div className="flex items-center gap-2 text-blue-600 bg-blue-50 border border-blue-100 rounded p-2">
-                <span className="material-symbols-outlined text-sm">info</span>
-                <span>No prior record found — Novel / not yet submitted to ClinVar</span>
-              </div>
-            ) : (
-              <pre className="text-[10px] font-mono bg-gray-50 border border-gray-100 rounded p-2 overflow-auto max-h-40">
-                {JSON.stringify(clinvar?.records, null, 2)}
-              </pre>
-            )}
-          </div>
+          {/* CNV specific details */}
+          {type === 'CNV' && (
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-2">dbVar Evidence</p>
+              {evidence.dbvar ? (
+                <>
+                  <table className="w-full mb-3">
+                    <tbody>
+                      <tr className="border-b border-gray-50">
+                        <td className="py-1 pr-3 text-gray-500">Match Status</td>
+                        <td className="py-1 font-mono text-gray-800">
+                          {evidence.dbvar.match_status}
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-50">
+                        <td className="py-1 pr-3 text-gray-500">Candidates Found</td>
+                        <td className="py-1 font-mono text-gray-800">
+                          {evidence.sources?.dbvar?.candidate_count ?? 0}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  
+                  {evidence.dbvar.candidates && evidence.dbvar.candidates.length > 0 && (
+                    <div className="mt-2">
+                       <p className="text-xs font-semibold text-gray-600 mb-1">Top Candidates:</p>
+                       <pre className="text-[10px] font-mono bg-gray-50 border border-gray-100 rounded p-2 overflow-auto max-h-40">
+                         {JSON.stringify(evidence.dbvar.candidates.slice(0, 3), null, 2)}
+                       </pre>
+                    </div>
+                  )}
+                </>
+              ) : (
+                 <div className="flex items-center gap-2 text-gray-600 bg-gray-50 border border-gray-100 rounded p-2">
+                   <span className="material-symbols-outlined text-sm">info</span>
+                   <span>No dbVar evidence available</span>
+                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ClinVar detail (for SNVs) */}
+          {type === 'SNV' && (
+            <div>
+              <p className="font-bold text-gray-500 uppercase tracking-wider mb-2">ClinVar</p>
+              {clinvarNotFound ? (
+                <div className="flex items-center gap-2 text-blue-600 bg-blue-50 border border-blue-100 rounded p-2">
+                  <span className="material-symbols-outlined text-sm">info</span>
+                  <span>No prior record found — Novel / not yet submitted to ClinVar</span>
+                </div>
+              ) : (
+                <pre className="text-[10px] font-mono bg-gray-50 border border-gray-100 rounded p-2 overflow-auto max-h-40">
+                  {JSON.stringify(clinvar?.records, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
