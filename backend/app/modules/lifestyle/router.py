@@ -1,3 +1,4 @@
+from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -27,11 +28,11 @@ class HypertensionInput(BaseModel):
     Sleep_Duration: float = Field(..., ge=0, le=24)
     BMI: float = Field(..., ge=5, le=80)
 
-    BP_History: str
-    Medication: str
-    Family_History: str
-    Exercise_Level: str
-    Smoking_Status: str
+    BP_History: Literal["Hypertension", "Normal", "Prehypertension"]
+    Medication: Literal["ACE Inhibitor", "Beta Blocker", "Diuretic", "None", "Other"]
+    Family_History: Literal["No", "Yes"]
+    Exercise_Level: Literal["High", "Low", "Moderate"]
+    Smoking_Status: Literal["Non-Smoker", "Smoker"]
 
 
 @router.post("/hypertension")
@@ -44,18 +45,18 @@ def hypertension_prediction(data: HypertensionInput):
 # ============================================================
 
 class StrokeInput(BaseModel):
-    gender: str
+    gender: Literal["Female", "Male", "Other"]
     age: float = Field(..., ge=1, le=120)
     hypertension: int = Field(..., ge=0, le=1)
     heart_disease: int = Field(..., ge=0, le=1)
-    ever_married: str
-    work_type: str
-    Residence_type: str
+    ever_married: Literal["No", "Yes"]
+    work_type: Literal["Govt_job", "Never_worked", "Private", "Self-employed", "children"]
+    Residence_type: Literal["Rural", "Urban"]
 
-    avg_glucose_level: float = Field(..., gt=0, le=1000)
+    avg_glucose_level: float = Field(..., ge=1, le=1000)
     bmi: float = Field(..., ge=5, le=80)
 
-    smoking_status: str
+    smoking_status: Literal["Unknown", "formerly smoked", "never smoked", "smokes"]
 
 
 @router.post("/stroke")
@@ -68,22 +69,22 @@ def stroke_prediction(data: StrokeInput):
 # ============================================================
 
 class CKDInput(BaseModel):
-    Bp: float = Field(..., gt=0, le=300)
+    Bp: float = Field(..., ge=1, le=300)
     Sg: float = Field(..., ge=1.0, le=1.1)
     Al: float = Field(..., ge=0, le=5)
     Su: float = Field(..., ge=0, le=5)
 
-    Rbc: str
+    Rbc: int = Field(..., ge=0, le=1)
 
-    Bu: float = Field(..., gt=0, le=500)
-    Sc: float = Field(..., gt=0, le=30)
-    Sod: float = Field(..., gt=0, le=200)
-    Pot: float = Field(..., gt=0, le=20)
-    Hemo: float = Field(..., gt=0, le=30)
-    Wbcc: float = Field(..., gt=0, le=50000)
-    Rbcc: float = Field(..., gt=0, le=15)
+    Bu: float = Field(..., ge=1, le=500)
+    Sc: float = Field(..., ge=1, le=30)
+    Sod: float = Field(..., ge=1, le=200)
+    Pot: float = Field(..., ge=1, le=20)
+    Hemo: float = Field(..., ge=1, le=30)
+    Wbcc: float = Field(..., ge=1, le=50000)
+    Rbcc: float = Field(..., ge=1, le=15)
 
-    Htn: str
+    Htn: int = Field(..., ge=0, le=1)
 
 
 @router.post("/ckd")
@@ -96,17 +97,17 @@ def ckd_prediction(data: CKDInput):
 # ============================================================
 
 class DiabetesInput(BaseModel):
-    gender: str
+    gender: Literal["Female", "Male", "Other"]
     age: float = Field(..., ge=1, le=120)
 
     hypertension: int = Field(..., ge=0, le=1)
     heart_disease: int = Field(..., ge=0, le=1)
 
-    smoking_history: str
+    smoking_history: Literal["No Info", "current", "ever", "former", "never", "not current"]
 
     bmi: float = Field(..., ge=5, le=80)
-    HbA1c_level: float = Field(..., gt=0, le=20)
-    blood_glucose_level: int = Field(..., gt=0, le=1000)
+    HbA1c_level: float = Field(..., ge=0, le=20)
+    blood_glucose_level: int = Field(..., ge=1, le=1000)
 
 
 @router.post("/diabetes")
@@ -121,25 +122,25 @@ def diabetes_prediction(data: DiabetesInput):
 class HeartDiseaseInput(BaseModel):
     age: float = Field(..., ge=1, le=120)
 
-    sex: str
-    cp: str
+    sex: Literal["Female", "Male"]
+    cp: Literal["asymptomatic", "atypical angina", "non-anginal", "typical angina"]
 
-    trestbps: float = Field(..., gt=0, le=300)
-    chol: float = Field(..., gt=0, le=1000)
+    trestbps: float = Field(..., ge=1, le=300)
+    chol: float = Field(..., ge=1, le=1000)
 
-    fbs: str
-    restecg: str
+    fbs: bool
+    restecg: Literal["lv hypertrophy", "normal", "st-t abnormality"]
 
-    thalch: float = Field(..., gt=0, le=300)
-    exang: str
+    thalch: float = Field(..., ge=1, le=300)
+    exang: bool
 
     oldpeak: float = Field(..., ge=0, le=20)
 
-    slope: str
+    slope: Literal["downsloping", "flat", "upsloping"]
 
     ca: float = Field(..., ge=0, le=4)
 
-    thal: str
+    thal: Literal["fixed defect", "normal", "reversable defect"]
 
 
 @router.post("/heart-disease")

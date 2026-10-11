@@ -22,7 +22,7 @@ export default function Dashboard() {
   const modules = [
     { name: 'Genetic Disorder ID', path: '/wes-analysis', icon: 'biotech', status: 'IN PROGRESS', desc: 'WES report parsing & ClinVar/gnomAD variant lookup' },
     { name: 'Facial Phenotype', path: '/facial-phenotype', icon: 'person_search', status: 'PLANNED', desc: 'Rule-based facial landmark screening' },
-    { name: 'Complex Disease Risk', path: '/complex-disease', icon: 'ecg_heart', status: 'IN PROGRESS', desc: 'ML-based risk scoring (diabetes, heart disease)' },
+    { name: 'Complex Disease Risk', path: '/complex-disease', icon: 'ecg_heart', status: 'IN PROGRESS', desc: 'ML risk screening: diabetes, heart disease, hypertension, stroke, CKD' },
     { name: 'Consanguinity Risk', path: '/consanguinity', icon: 'family_history', status: 'READY', desc: 'Punnett-square based offspring risk calculator' },
     { name: 'Pharmacogenomics', path: '/pharmacogenomics', icon: 'medication', status: 'PLANNED', desc: 'Drug-gene interaction screening' },
     { name: 'Family Pedigree', path: '/pedigree', icon: 'account_tree', status: 'READY', desc: 'Pedigree builder & inheritance pattern detection' },
