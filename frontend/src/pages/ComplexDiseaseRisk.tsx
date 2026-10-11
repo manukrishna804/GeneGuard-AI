@@ -339,7 +339,7 @@ export default function ComplexDiseaseRisk() {
         {/* Global Summary Chip */}
         <div className="flex items-center gap-2 bg-gray-50 px-4 py-2.5 rounded-xl border border-gray-200">
           <span className="text-xs text-gray-500 font-medium">Screened:</span>
-          <span className="text-sm font-bold text-gray-900">{overallSummary.diseases_assessed} / 5</span>
+          <span className="text-sm font-bold text-gray-900">{overallSummary.diseases_assessed} / {diseaseTabs.length}</span>
           {overallSummary.overall_risk !== 'None' && (
             <div className="ml-2">{getRiskBadge(overallSummary.overall_risk)}</div>
           )}
